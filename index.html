@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DJ Dave • Live Wedding & Event Hub</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        oled: '#050505',
+                        surface: '#121212',
+                        card: '#1a1a1a',
+                        monster: '#39FF14'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- React & ReactDOM UMD -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel Standalone for In-Browser JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            background-color: #050505;
+            color: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #39FF14; }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(57, 255, 20, 0.25); }
+            50% { box-shadow: 0 0 28px rgba(57, 255, 20, 0.55); }
+        }
+        .monster-glow { animation: pulseGlow 2.6s infinite ease-in-out; }
+    </style>
+</head>
+<body class="bg-oled text-gray-100 min-h-screen selection:bg-monster selection:text-black">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ============================================================================
+        // OPTIONAL: PASTE YOUR FIREBASE REALTIME DATABASE URL BELOW FOR AUTO-SYNC
+        // Example: "https://dj-dave-hub-default-rtdb.firebaseio.com"
+        // (You can also paste or edit this live inside the DJ Booth settings!)
+        // ============================================================================
+        const DEFAULT_FIREBASE_URL = "";
+
+        const STORAGE_KEY = "dj_dave_unified_hub_v7";
+
+        // Custom Neon Green Monster Energy 3-Claw "M" Emblem
+        const MonsterClawLogo = ({ className = "w-5 h-5" }) => (
+            <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 3L7 18L10 8L13 19L16 6L18.5 16L21 3" stroke="#39FF14" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 10C2 10 3 14 6 15" stroke="#39FF14" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+        );
+
+        // Crisp Web Audio API Synth Chime for Samsung Shade Alerts
+        const playAlertChime = () => {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const now = ctx.currentTime;
+                const osc1 = ctx.createOscillator();
+                const osc2 = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc1.type = "sine";
+                osc2.type = "triangle";
+                osc1.frequency.setValueAtTime(587.33, now);
+                osc1.frequency.setValueAtTime(880, now + 0.11);
+                osc2.frequency.setValueAtTime(293.66, now);
+                osc2.frequency.setValueAtTime(440, now + 0.11);
+                gain.gain.setValueAtTime(0.14, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(ctx.destination);
+                osc1.start(now);
+                osc2.start(now);
+                osc1.stop(now + 0.42);
+                osc2.stop(now + 0.42);
+            } catch (e) {}
+        };
+
+        // Client-side Canvas Photo Compression (max 900px, 0.72 JPEG) for fast Firebase sync
+        const compressImage = (file) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        const maxDim = 900;
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > h && w > maxDim) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else if (h > maxDim) {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                        canvas.width = w;
+                        canvas.height = h;
+                        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL("image/jpeg", 0.72));
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        };
+
+        const INITIAL_CONFIG = {
+            coupleName: "Sarah & Michael's Wedding",
+            venueSubtitle: "Reception & Party Hub",
+            djName: "DJ Dave",
+            cashTag: "$ourmtnlove",
+            tipVibe: "monster", // 'monster' | 'drink' | 'herb'
+            familyFriendlyFilter: true,
+            photoLink: "",
+            dbUrl: DEFAULT_FIREBASE_URL
+        };
+
+        const INITIAL_QUEUE = [
+            {
+                id: "101",
+                title: "September",
+                artist: "Earth, Wind & Fire",
+                albumArt: "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/6b/70/42/6b704258-4c5c-6948-415d-88321b40d394/886443927087.jpg/100x100bb.jpg",
+                requester: "Bridesmaid Jess",
+                votes: 12,
+                appropriateness: "✅ Clean • Wedding Ready (99% Fit)",
+                explicit: false,
+                year: 1978
+            },
+            {
+                id: "102",
+                title: "Uptown Funk",
+                artist: "Mark Ronson ft. Bruno Mars",
+                albumArt: "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/56/15/36/56153672-4a2b-82e6-3f16-0523c6c62b57/886444933063.jpg/100x100bb.jpg",
+                requester: "Groomsman Tyler",
+                votes: 9,
+                appropriateness: "✅ Clean • Wedding Ready (98% Fit)",
+                explicit: false,
+                year: 2014
+            },
+            {
+                id: "103",
+                title: "Mr. Brightside",
+                artist: "The Killers",
+                albumArt: "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/c8/0e/44/c80e4472-f583-9493-7799-096e07f6a601/16UMGIM59829.rgb.jpg/100x100bb.jpg",
+                requester: "Uncle Bob",
+                votes: 7,
+                appropriateness: "🎉 Party / Club Vibe (Check Lyrics)",
+                explicit: false,
+                year: 2003
+            }
+        ];
+
+        const INITIAL_PHOTOS = [
+            {
+                id: "p1",
+                url: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=600&q=80",
+                caption: "First Dance magic ✨",
+                uploader: "Aunt Linda"
+            },
+            {
+                id: "p2",
+                url: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=600&q=80",
+                caption: "Cheers to the newlyweds! 🥂",
+                uploader: "Best Man Chris"
+            }
+        ];
+
+        function App() {
+            // Navigation & Auth State
+            const [viewMode, setViewMode] = useState("guest"); // 'guest' | 'dj'
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [djPin, setDjPin] = useState("");
+            const [pinError, setPinError] = useState(false);
+            const [boothTab, setBoothTab] = useState("songs"); // 'songs' | 'photos'
+
+            // Main Hub Data State
+            const [eventConfig, setEventConfig] = useState(() => {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                    if (saved?.config) {
+                        return {
+                            ...INITIAL_CONFIG,
+                            ...saved.config,
+                            dbUrl: saved.config.dbUrl || DEFAULT_FIREBASE_URL
+                        };
+                    }
+                } catch (e) {}
+                return INITIAL_CONFIG;
+            });
+
+            const [editForm, setEditForm] = useState(eventConfig);
+
+            const [queue, setQueue] = useState(() => {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                    if (Array.isArray(saved?.queue)) return saved.queue;
+                } catch (e) {}
+                return INITIAL_QUEUE;
+            });
+
+            const [photos, setPhotos] = useState(() => {
+                try {
+                    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                    if (Array.isArray(saved?.photos)) return saved.photos;
+                } catch (e) {}
+                return INITIAL_PHOTOS;
+            });
+
+            // Guest Inputs & Search State
+            const [guestName, setGuestName] = useState("");
+            const [searchQuery, setSearchQuery] = useState("");
+            const [searchResults, setSearchResults] = useState([]);
+            const [isSearching, setIsSearching] = useState(false);
+            const [upvotedIds, setUpvotedIds] = useState([]);
+            const [photoUploadSuccess, setPhotoUploadSuccess] = useState(false);
+
+            // Modals, Cloud Sync & Notification State
+            const [showTipModal, setShowTipModal] = useState(false);
+            const [qrModalMode, setQrModalMode] = useState(null); // null | 'guest' | 'couple'
+            const [notificationToast, setNotificationToast] = useState(null);
+            const [isCloudLive, setIsCloudLive] = useState(false);
+            const [confirmReset, setConfirmReset] = useState(false);
+
+            // Track known IDs so we fire Samsung Shade alerts when a guest adds a new song or photo
+            const knownSongIdsRef = useRef(new Set(queue.map(s => String(s.id))));
+            const knownPhotoIdsRef = useRef(new Set(photos.map(p => String(p.id))));
+
+            // Keep editForm synced when eventConfig updates externally
+            useEffect(() => {
+                setEditForm(eventConfig);
+            }, [eventConfig]);
+
+            // Save to localStorage whenever state changes
+            useEffect(() => {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                        config: eventConfig,
+                        queue,
+                        photos
+                    }));
+                } catch (e) {}
+            }, [eventConfig, queue, photos]);
+
+            // Trigger Samsung Notification Shade Banner + Audio Chime + Native Notification
+            const triggerSamsungAlert = (title, body) => {
+                playAlertChime();
+                setNotificationToast({ title, body, time: "Just now" });
+                setTimeout(() => {
+                    setNotificationToast((prev) => (prev?.title === title ? null : prev));
+                }, 5000);
+
+                if ("Notification" in window && Notification.permission === "granted") {
+                    try {
+                        new Notification(title, { body });
+                    } catch (e) {}
+                }
+            };
+
+            // Arm Native Browser Notifications for Samsung Shade
+            const armSamsungShadeAlerts = () => {
+                if (!("Notification" in window)) {
+                    triggerSamsungAlert("🔔 In-App Shade Armed", "Audio chime & top drop-down shade banner active!");
+                    return;
+                }
+                Notification.requestPermission().then((perm) => {
+                    if (perm === "granted") {
+                        triggerSamsungAlert("✅ Samsung Shade Armed!", "Incoming song requests & photos will alert your phone.");
+                    } else {
+                        triggerSamsungAlert("🔔 In-App Shade Active", "Top shade banner & audio chime armed for your set.");
+                    }
+                });
+            };
+
+            // ================= FIREBASE REALTIME CLOUD SYNC ENGINE =================
+            const getCleanDbUrl = (rawUrl) => {
+                let u = (rawUrl || eventConfig.dbUrl || DEFAULT_FIREBASE_URL || "").trim();
+                if (!u) return "";
+                if (u.endsWith("/")) u = u.slice(0, -1);
+                return u;
+            };
+
+            const pushToFirebase = async (nextConfig, nextQueue, nextPhotos) => {
+                const base = getCleanDbUrl(nextConfig?.dbUrl);
+                if (!base) return;
+                try {
+                    const res = await fetch(`${base}/hub.json`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            config: nextConfig,
+                            queue: nextQueue,
+                            photos: nextPhotos,
+                            updatedAt: Date.now()
+                        })
+                    });
+                    if (res.ok) setIsCloudLive(true);
+                } catch (e) {
+                    setIsCloudLive(false);
+                }
+            };
+
+            useEffect(() => {
+                const base = getCleanDbUrl();
+                if (!base) {
+                    setIsCloudLive(false);
+                    return;
+                }
+
+                const pollFirebase = async () => {
+                    try {
+                        const res = await fetch(`${base}/hub.json`);
+                        if (!res.ok) {
+                            setIsCloudLive(false);
+                            return;
+                        }
+                        const data = await res.json();
+                        setIsCloudLive(true);
+
+                        if (!data) {
+                            await pushToFirebase(eventConfig, queue, photos);
+                            return;
+                        }
+
+                        const remoteQueue = Array.isArray(data.queue) ? data.queue : [];
+                        const remotePhotos = Array.isArray(data.photos) ? data.photos : [];
+
+                        // Detect new song requests from guests
+                        remoteQueue.forEach((song) => {
+                            const sid = String(song.id);
+                            if (!knownSongIdsRef.current.has(sid)) {
+                                knownSongIdsRef.current.add(sid);
+                                triggerSamsungAlert(
+                                    `🎵 ${song.title} — ${song.artist}`,
+                                    `${song.appropriateness} • Req by ${song.requester}`
+                                );
+                            }
+                        });
+
+                        // Detect new photo drops from guests
+                        remotePhotos.forEach((photo) => {
+                            const pid = String(photo.id);
+                            if (!knownPhotoIdsRef.current.has(pid)) {
+                                knownPhotoIdsRef.current.add(pid);
+                                triggerSamsungAlert(
+                                    `📸 New Event Photo Uploaded!`,
+                                    `Shared by ${photo.uploader}`
+                                );
+                            }
+                        });
+
+                        if (data.config) {
+                            setEventConfig((prev) => ({
+                                ...prev,
+                                ...data.config,
+                                dbUrl: prev.dbUrl || data.config.dbUrl || DEFAULT_FIREBASE_URL
+                            }));
+                        }
+                        setQueue(remoteQueue);
+                        setPhotos(remotePhotos);
+                    } catch (e) {
+                        setIsCloudLive(false);
+                    }
+                };
+
+                pollFirebase();
+                const interval = setInterval(pollFirebase, 3500);
+                return () => clearInterval(interval);
+            }, [eventConfig.dbUrl]);
+
+            // ================= LIVE ITUNES SONG SEARCH =================
+            useEffect(() => {
+                if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+                    setSearchResults([]);
+                    setIsSearching(false);
+                    return;
+                }
+                const timer = setTimeout(async () => {
+                    setIsSearching(true);
+                    try {
+                        const res = await fetch(
+                            `https://itunes.apple.com/search?term=${encodeURIComponent(searchQuery.trim())}&entity=song&limit=6`
+                        );
+                        const data = await res.json();
+                        const formatted = (data.results || []).map((item) => {
+                            const isExplic =
+                                item.trackExplicitness === "explicit" ||
+                                /explicit|dirty|uncensored/i.test(item.trackName);
+                            let appScore = "✅ Clean • Wedding Ready (98% Fit)";
+                            if (isExplic) {
+                                appScore = "⚠️ Explicit Flagged (Radio Edit Needed)";
+                            } else if (/club|party|dance|hip-hop|rap|electronic/i.test(item.primaryGenreName)) {
+                                appScore = "🎉 Party / Club Vibe (Check Lyrics)";
+                            }
+                            return {
+                                id: String(item.trackId),
+                                title: item.trackName,
+                                artist: item.artistName,
+                                albumArt: item.artworkUrl100 || "",
+                                explicit: isExplic,
+                                appropriateness: appScore,
+                                year: item.releaseDate ? new Date(item.releaseDate).getFullYear() : 2020
+                            };
+                        });
+
+                        if (eventConfig.familyFriendlyFilter) {
+                            formatted.sort((a, b) => (a.explicit === b.explicit ? 0 : a.explicit ? 1 : -1));
+                        }
+                        setSearchResults(formatted);
+                    } catch (err) {
+                        console.error("Search error:", err);
+                    } finally {
+                        setIsSearching(false);
+                    }
+                }, 320);
+
+                return () => clearTimeout(timer);
+            }, [searchQuery, eventConfig.familyFriendlyFilter]);
+
+            // Add Song Request (from iTunes Search or + Custom button)
+            const handleAddRequest = (track) => {
+                const reqBy = guestName.trim() || "Wedding Guest";
+                const newReq = {
+                    id: String(Date.now()),
+                    title: track.title,
+                    artist: track.artist,
+                    albumArt: track.albumArt || "",
+                    requester: reqBy,
+                    votes: 1,
+                    appropriateness: track.appropriateness || "✅ Clean • Wedding Ready (95% Fit)",
+                    explicit: !!track.explicit,
+                    year: track.year || ""
+                };
+                knownSongIdsRef.current.add(newReq.id);
+                const nextQueue = [newReq, ...queue];
+                setQueue(nextQueue);
+                setSearchQuery("");
+                setSearchResults([]);
+                pushToFirebase(eventConfig, nextQueue, photos);
+                triggerSamsungAlert(
+                    `🎵 New Request: ${newReq.title}`,
+                    `${newReq.artist} • ${newReq.appropriateness} (Req by ${reqBy})`
+                );
+            };
+
+            const handleCustomSongRequest = () => {
+                const raw = searchQuery.trim();
+                if (!raw) {
+                    triggerSamsungAlert("🎵 Type a Song Name First", "Enter any song title or remix in the search box, then tap + Custom.");
+                    return;
+                }
+                handleAddRequest({
+                    title: raw,
+                    artist: "Custom Guest Request",
+                    albumArt: "",
+                    appropriateness: "🎉 Custom Track (Check Lyrics)",
+                    explicit: false,
+                    year: ""
+                });
+            };
+
+            // Upvote Song in Crowd Queue
+            const handleUpvote = (songId) => {
+                if (upvotedIds.includes(songId)) return;
+                setUpvotedIds([...upvotedIds, songId]);
+                const nextQueue = queue
+                    .map((q) => (q.id === songId ? { ...q, votes: (q.votes || 1) + 1 } : q))
+                    .sort((a, b) => (b.votes || 0) - (a.votes || 0));
+                setQueue(nextQueue);
+                pushToFirebase(eventConfig, nextQueue, photos);
+            };
+
+            // Mark Song Played / Remove in DJ Booth
+            const handleRemoveSong = (songId) => {
+                const nextQueue = queue.filter((q) => q.id !== songId);
+                setQueue(nextQueue);
+                pushToFirebase(eventConfig, nextQueue, photos);
+            };
+
+            // Handle Guest Photo Upload with Client-Side Compression
+            const handlePhotoUpload = async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const compressedDataUrl = await compressImage(file);
+                const uploader = guestName.trim() || "Wedding Guest";
+                const newPhoto = {
+                    id: "p_" + Date.now(),
+                    url: compressedDataUrl,
+                    caption: "Shared live at reception ✨",
+                    uploader
+                };
+                knownPhotoIdsRef.current.add(newPhoto.id);
+                const nextPhotos = [newPhoto, ...photos];
+                setPhotos(nextPhotos);
+                pushToFirebase(eventConfig, queue, nextPhotos);
+                setPhotoUploadSuccess(true);
+                setTimeout(() => setPhotoUploadSuccess(false), 3500);
+                triggerSamsungAlert("📸 New Event Photo Uploaded!", `Shared by ${uploader} — Ready in DJ Booth.`);
+            };
+
+            const handleDeletePhoto = (photoId) => {
+                const nextPhotos = photos.filter((p) => p.id !== photoId);
+                setPhotos(nextPhotos);
+                pushToFirebase(eventConfig, queue, nextPhotos);
+            };
+
+            // Instant Tip Vibe Switch in DJ Booth
+            const handleSelectTipVibe = (vibe) => {
+                const updated = { ...eventConfig, tipVibe: vibe };
+                setEventConfig(updated);
+                setEditForm(updated);
+                pushToFirebase(updated, queue, photos);
+            };
+
+            // Save Booth Settings
+            const handleSaveSettings = () => {
+                let cleanTag = (editForm.cashTag || "$ourmtnlove").trim();
+                if (!cleanTag.startsWith("$")) cleanTag = "$" + cleanTag;
+                const updated = {
+                    ...editForm,
+                    coupleName: editForm.coupleName.trim() || "Wedding Reception",
+                    venueSubtitle: editForm.venueSubtitle.trim() || "Reception & Party Hub",
+                    djName: editForm.djName.trim() || "DJ Dave",
+                    cashTag: cleanTag
+                };
+                setEventConfig(updated);
+                pushToFirebase(updated, queue, photos);
+                triggerSamsungAlert("✅ Booth Settings Broadcasted!", `Live for ${updated.coupleName}`);
+            };
+
+            // Reset Queue for Next Gig (2-tap inline confirmation, no window.confirm)
+            const handleResetQueue = () => {
+                if (!confirmReset) {
+                    setConfirmReset(true);
+                    setTimeout(() => setConfirmReset(false), 4000);
+                    return;
+                }
+                setQueue([]);
+                setPhotos([]);
+                setConfirmReset(false);
+                pushToFirebase(eventConfig, [], []);
+                triggerSamsungAlert("🔄 Queue & Photos Cleared", "Ready for your next event!");
+            };
+
+            // Brief 1-Word Tip Tiers & Footer CTA Meta
+            const getTipVibeMeta = () => {
+                const dj = eventConfig.djName || "DJ Dave";
+                const tag = eventConfig.cashTag || "$ourmtnlove";
+                if (eventConfig.tipVibe === "drink") {
+                    return {
+                        footerCta: `Buy ${dj} a Drink (${tag})`,
+                        modalTitle: `Buy ${dj} a Drink`,
+                        tiers: [
+                            { label: "Water", amount: 3 },
+                            { label: "Soda", amount: 5 },
+                            { label: "Cocktail", amount: 10 }
+                        ]
+                    };
+                }
+                if (eventConfig.tipVibe === "herb") {
+                    return {
+                        footerCta: `Buy ${dj} a Joint (${tag})`,
+                        modalTitle: `Buy ${dj} a Joint`,
+                        tiers: [
+                            { label: "Green", amount: 3 },
+                            { label: "Silver", amount: 5 },
+                            { label: "Gold", amount: 10 }
+                        ]
+                    };
+                }
+                return {
+                    footerCta: `Buy ${dj} a Monster (${tag})`,
+                    modalTitle: `Buy ${dj} a Monster`,
+                    tiers: [
+                        { label: "Single", amount: 3 },
+                        { label: "Tallboy", amount: 5 },
+                        { label: "4-Pack", amount: 10 }
+                    ]
+                };
+            };
+
+            const tipMeta = getTipVibeMeta();
+            const cleanCashtag = (eventConfig.cashTag || "$ourmtnlove").replace(/^\$/, "");
+            const currentAppUrl = window.location.href.split("#")[0];
+            const coupleAlbumUrl = eventConfig.photoLink?.trim() || currentAppUrl;
+
+            return (
+                <div className="min-h-screen bg-oled text-gray-100 flex flex-col pb-20">
+                    {/* ================= SAMSUNG NOTIFICATION SHADE BANNER ================= */}
+                    {notificationToast && (
+                        <div className="fixed top-4 left-4 right-4 z-50 max-w-md mx-auto bg-neutral-900/95 border border-monster/60 backdrop-blur-md rounded-2xl p-4 shadow-2xl flex items-center gap-3 animate-bounce">
+                            <div className="w-10 h-10 rounded-xl bg-monster/20 border border-monster/40 flex items-center justify-center shrink-0">
+                                <MonsterClawLogo className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-monster uppercase tracking-wider">
+                                        {eventConfig.djName} • Samsung Shade Alert
+                                    </span>
+                                    <button
+                                        onClick={() => setNotificationToast(null)}
+                                        className="text-xs text-gray-400 hover:text-white font-bold px-1"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <h4 className="text-sm font-bold text-white truncate">{notificationToast.title}</h4>
+                                <p className="text-xs text-gray-300 truncate">{notificationToast.body}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ================= STICKY TOP NAVIGATION HEADER ================= */}
+                    <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-neutral-800 px-4 py-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-monster/10 border border-monster/30 flex items-center justify-center shrink-0 monster-glow">
+                                <MonsterClawLogo className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-sm font-bold text-white truncate">{eventConfig.coupleName}</h1>
+                                    <span
+                                        className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border shrink-0 ${
+                                            isCloudLive
+                                                ? "bg-monster/15 text-monster border-monster/40"
+                                                : "bg-neutral-800 text-gray-400 border-neutral-700"
+                                        }`}
+                                    >
+                                        {isCloudLive ? "☁️ LIVE SYNC" : "LOCAL DEMO"}
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-gray-400 truncate">{eventConfig.venueSubtitle}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                            {viewMode === "guest" ? (
+                                <button
+                                    onClick={() => setViewMode("dj")}
+                                    className="px-3.5 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-gray-200 border border-neutral-700 transition flex items-center gap-1.5"
+                                >
+                                    <span className="text-monster">🎛️</span>
+                                    <span>DJ Booth</span>
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setViewMode("guest")}
+                                    className="px-3.5 py-1.5 rounded-xl bg-monster text-black text-xs font-extrabold hover:bg-monster/90 transition flex items-center gap-1.5 shadow-lg shadow-monster/20"
+                                >
+                                    <span>📱</span>
+                                    <span>Guest View</span>
+                                </button>
+                            )}
+                        </div>
+                    </header>
+
+                    {/* ================= MAIN CONTENT CONTAINER ================= */}
+                    <main className="flex-1 max-w-2xl w-full mx-auto p-4 space-y-6">
+                        {viewMode === "guest" ? (
+                            /* ============================================================
+                               VIEW 1: GUEST INTERFACE (RICH 3RD REVISION OLED THEME)
+                               ============================================================ */
+                            <div className="space-y-6">
+                                {/* Hero Welcome Card & Quick Music App Launchers */}
+                                <div className="bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800/80 rounded-2xl p-5 text-center shadow-xl space-y-3">
+                                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                                        <span className="inline-block px-3 py-1 rounded-full bg-monster/10 text-monster text-xs font-bold tracking-wide uppercase border border-monster/20">
+                                            ● {eventConfig.djName} Live Hub
+                                        </span>
+                                        {eventConfig.familyFriendlyFilter && (
+                                            <span className="inline-block px-3 py-1 rounded-full bg-purple-500/15 text-purple-300 text-xs font-semibold border border-purple-500/30">
+                                                🛡️ Family-Friendly Reception
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <h2 className="text-xl font-extrabold text-white">Welcome to the Reception!</h2>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            Request tracks for the dancefloor, drop candid photos for the couple, and keep {eventConfig.djName} energized!
+                                        </p>
+                                    </div>
+
+                                    {/* Inline Guest Name Input (Zero window.prompt Popups!) */}
+                                    <div className="pt-1">
+                                        <input
+                                            type="text"
+                                            value={guestName}
+                                            onChange={(e) => setGuestName(e.target.value)}
+                                            placeholder="Your Name / Table (optional, e.g. Bridesmaid Jess)"
+                                            className="w-full bg-neutral-950 border border-neutral-800 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-monster transition"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 pt-1">
+                                        <a
+                                            href={`https://open.spotify.com/search/${encodeURIComponent(searchQuery || "wedding party hits")}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="p-3 rounded-xl bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 flex items-center justify-center gap-2 text-xs font-bold text-white transition group"
+                                        >
+                                            <span className="text-green-400 text-sm group-hover:scale-110 transition">●</span>
+                                            <span>Open Spotify</span>
+                                        </a>
+                                        <a
+                                            href={`https://music.youtube.com/search?q=${encodeURIComponent(searchQuery || "wedding party hits")}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="p-3 rounded-xl bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/60 flex items-center justify-center gap-2 text-xs font-bold text-white transition group"
+                                        >
+                                            <span className="text-red-500 text-sm group-hover:scale-110 transition">▶</span>
+                                            <span>YouTube Music</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                {/* Live Song Search & Request Card */}
+                                <div className="bg-neutral-900/80 border border-neutral-800 rounded-2xl p-4 shadow-lg space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <span className="text-monster">🎵</span>
+                                            <span>Request a Song</span>
+                                        </h3>
+                                        <span className="text-[11px] text-gray-400">Live iTunes Catalog + Fit Check</span>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="text"
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                placeholder="Search artist, song title, or remix..."
+                                                className="w-full bg-neutral-950 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-monster transition shadow-inner"
+                                            />
+                                            {isSearching && (
+                                                <div className="absolute right-3 top-3.5">
+                                                    <div className="w-4 h-4 border-2 border-monster border-t-transparent rounded-full animate-spin"></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleCustomSongRequest}
+                                            className="px-3.5 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-monster border border-neutral-700 shrink-0 transition"
+                                            title="Submit custom song or remix"
+                                        >
+                                            + Custom
+                                        </button>
+                                    </div>
+
+                                    {/* Search Results List */}
+                                    {searchResults.length > 0 && (
+                                        <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                                            {searchResults.map((song) => (
+                                                <div
+                                                    key={song.id}
+                                                    className="bg-neutral-950/90 border border-neutral-800 rounded-xl p-3 flex items-center justify-between gap-3 hover:border-monster/50 transition"
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        {song.albumArt ? (
+                                                            <img
+                                                                src={song.albumArt}
+                                                                alt={song.title}
+                                                                className="w-12 h-12 rounded-lg object-cover shrink-0 bg-neutral-800"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center shrink-0 text-lg">
+                                                                🎵
+                                                            </div>
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <h4 className="text-xs font-bold text-white truncate">{song.title}</h4>
+                                                            <p className="text-[11px] text-gray-400 truncate">
+                                                                {song.artist} {song.year ? `(${song.year})` : ""}
+                                                            </p>
+                                                            <span
+                                                                className={`inline-block mt-0.5 text-[10px] font-semibold ${
+                                                                    song.explicit ? "text-amber-400" : "text-emerald-400"
+                                                                }`}
+                                                            >
+                                                                {song.appropriateness}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleAddRequest(song)}
+                                                        className="px-3.5 py-2 rounded-lg bg-monster text-black text-xs font-extrabold hover:bg-monster/90 transition shrink-0 shadow-md shadow-monster/15"
+                                                    >
+                                                        Request
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Live Crowd Queue & Upvoting Card */}
+                                <div className="bg-neutral-900/80 border border-neutral-800 rounded-2xl p-4 shadow-lg space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <span className="text-monster">🔥</span>
+                                            <span>Live Crowd Queue</span>
+                                        </h3>
+                                        <span className="text-[11px] text-gray-400">{queue.length} Songs Queued • Tap 🔥 to Boost</span>
+                                    </div>
+
+                                    {queue.length === 0 ? (
+                                        <div className="py-6 text-center text-xs text-gray-500">
+                                            No songs in the queue yet — request the first track above!
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {queue.map((item, idx) => {
+                                                const voted = upvotedIds.includes(item.id);
+                                                return (
+                                                    <div
+                                                        key={item.id}
+                                                        className="bg-neutral-950/80 border border-neutral-800/80 rounded-xl p-3 flex items-center justify-between gap-3"
+                                                    >
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <span className="text-xs font-extrabold text-gray-500 w-5 text-right shrink-0">
+                                                                #{idx + 1}
+                                                            </span>
+                                                            {item.albumArt ? (
+                                                                <img
+                                                                    src={item.albumArt}
+                                                                    alt=""
+                                                                    className="w-10 h-10 rounded-lg object-cover shrink-0 bg-neutral-800"
+                                                                />
+                                                            ) : null}
+                                                            <div className="min-w-0">
+                                                                <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
+                                                                <p className="text-[11px] text-gray-400 truncate">
+                                                                    {item.artist} • Req by <span className="text-gray-200">{item.requester}</span>
+                                                                </p>
+                                                                <span
+                                                                    className={`text-[10px] font-medium ${
+                                                                        item.explicit ? "text-amber-400" : "text-emerald-400"
+                                                                    }`}
+                                                                >
+                                                                    {item.appropriateness}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleUpvote(item.id)}
+                                                            className={`px-3 py-1.5 rounded-lg border text-xs font-extrabold flex items-center gap-1 transition shrink-0 ${
+                                                                voted
+                                                                    ? "bg-monster/20 border-monster text-monster"
+                                                                    : "bg-neutral-800 hover:bg-neutral-700 border-neutral-700 text-monster"
+                                                            }`}
+                                                        >
+                                                            <span>🔥</span>
+                                                            <span>{item.votes || 1}</span>
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Snap & Share Photo Drop Card */}
+                                <div className="bg-neutral-900/80 border border-neutral-800 rounded-2xl p-4 shadow-lg space-y-3 text-center">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                                            <span className="text-monster">📸</span>
+                                            <span>Share Wedding Photos</span>
+                                        </h3>
+                                        <span className="text-[11px] text-gray-400">Direct to Couple's Archive</span>
+                                    </div>
+                                    <p className="text-xs text-gray-400">
+                                        Snap a candid moment from your phone and drop it here for the bride &amp; groom!
+                                    </p>
+                                    <label className="block w-full py-3.5 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-monster/40 text-xs font-extrabold text-white cursor-pointer transition text-center shadow-md">
+                                        <span className="text-monster mr-2">📷</span>
+                                        Choose Photo or Take Picture
+                                        <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                                    </label>
+                                    {photoUploadSuccess && (
+                                        <p className="text-xs font-bold text-monster animate-pulse">
+                                            ✨ Photo uploaded to the Couple's Gallery!
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            /* ============================================================
+                               VIEW 2: ACTION-FIRST DJ BOOTH VIEW
+                               ============================================================ */
+                            <div className="space-y-6">
+                                {!isAuthenticated ? (
+                                    /* Inline DJ PIN Card + 1-Tap Demo Unlock */
+                                    <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center space-y-4 shadow-2xl max-w-sm mx-auto mt-10">
+                                        <div className="w-12 h-12 rounded-2xl bg-monster/20 border border-monster/30 flex items-center justify-center mx-auto text-xl">
+                                            🔒
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base font-bold text-white">DJ Booth Access</h3>
+                                            <p className="text-xs text-gray-400 mt-1">Enter your 4-digit PIN (Default: 1234)</p>
+                                        </div>
+
+                                        <form
+                                            onSubmit={(e) => {
+                                                e.preventDefault();
+                                                if (djPin === "1234" || djPin === "0000") {
+                                                    setIsAuthenticated(true);
+                                                    setPinError(false);
+                                                } else {
+                                                    setPinError(true);
+                                                }
+                                            }}
+                                            className="space-y-3"
+                                        >
+                                            <input
+                                                type="password"
+                                                inputMode="numeric"
+                                                maxLength="4"
+                                                value={djPin}
+                                                onChange={(e) => setDjPin(e.target.value)}
+                                                placeholder="••••"
+                                                className="w-36 text-center tracking-widest text-lg bg-neutral-950 border border-neutral-700 rounded-xl py-2.5 text-white focus:outline-none focus:border-monster mx-auto block"
+                                            />
+                                            {pinError && <p className="text-xs text-red-400">Incorrect PIN. Try 1234</p>}
+                                            <button
+                                                type="submit"
+                                                className="w-full py-2.5 rounded-xl bg-monster text-black text-xs font-extrabold hover:bg-monster/90 transition shadow-lg shadow-monster/20"
+                                            >
+                                                Unlock Booth
+                                            </button>
+                                        </form>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsAuthenticated(true)}
+                                            className="w-full py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-monster border border-neutral-700 transition"
+                                        >
+                                            ⚡ Instant Demo Unlock
+                                        </button>
+                                    </div>
+                                ) : (
+                                    /* UNLOCKED DJ BOOTH: 1. QR TOP -> 2. QUEUES -> 3. SETTINGS */
+                                    <div className="space-y-6">
+                                        {/* 1ST (TOP CARD): PERSISTENT GUEST ACCESS PASS QR */}
+                                        <div className="bg-gradient-to-br from-neutral-900 to-neutral-950 border border-neutral-800 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-center gap-5">
+                                            <div
+                                                onClick={() => setQrModalMode("guest")}
+                                                className="bg-white p-2.5 rounded-2xl shrink-0 shadow-lg cursor-pointer hover:scale-105 transition"
+                                                title="Tap for Fullscreen QR Kiosk"
+                                            >
+                                                <img
+                                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=6&data=${encodeURIComponent(currentAppUrl)}`}
+                                                    alt="Guest Access QR"
+                                                    className="w-24 h-24 object-contain"
+                                                />
+                                            </div>
+                                            <div className="flex-1 text-center sm:text-left space-y-1.5">
+                                                <span className="inline-block px-2.5 py-0.5 rounded-full bg-monster/10 text-monster text-[10px] font-bold uppercase tracking-wide border border-monster/20">
+                                                    Guest Access Pass • Ready to Scan
+                                                </span>
+                                                <h3 className="text-base font-extrabold text-white">Scan for Song Requests &amp; Photos</h3>
+                                                <p className="text-xs text-gray-400">
+                                                    Display on your phone/tablet or print once—updates automatically for every wedding!
+                                                </p>
+                                                <div className="pt-1.5 flex flex-wrap gap-2 justify-center sm:justify-start">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setQrModalMode("guest")}
+                                                        className="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-white border border-neutral-700 transition"
+                                                    >
+                                                        ⛶ Fullscreen Guest QR
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setQrModalMode("couple")}
+                                                        className="px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-purple-300 border border-neutral-700 transition"
+                                                    >
+                                                        💍 Couple Photo QR
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={armSamsungShadeAlerts}
+                                                        className="px-3 py-1.5 rounded-xl bg-monster/15 hover:bg-monster/25 text-xs font-bold text-monster border border-monster/30 transition"
+                                                    >
+                                                        🔔 Arm Shade Alerts
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* 2ND (RIGHT BELOW QR): SONG QUEUE & PHOTO MODERATION UP TOP */}
+                                        <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-5 shadow-lg space-y-4">
+                                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-800 pb-3">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setBoothTab("songs")}
+                                                        className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition ${
+                                                            boothTab === "songs"
+                                                                ? "bg-monster text-black shadow-md shadow-monster/20"
+                                                                : "bg-neutral-900 text-gray-300 border border-neutral-800"
+                                                        }`}
+                                                    >
+                                                        🎵 Song Queue ({queue.length})
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setBoothTab("photos")}
+                                                        className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition ${
+                                                            boothTab === "photos"
+                                                                ? "bg-monster text-black shadow-md shadow-monster/20"
+                                                                : "bg-neutral-900 text-gray-300 border border-neutral-800"
+                                                        }`}
+                                                    >
+                                                        📸 Guest Photos ({photos.length})
+                                                    </button>
+                                                </div>
+
+                                                <label className="flex items-center gap-2 text-xs font-semibold text-gray-300 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={eventConfig.familyFriendlyFilter}
+                                                        onChange={(e) => {
+                                                            const next = { ...eventConfig, familyFriendlyFilter: e.target.checked };
+                                                            setEventConfig(next);
+                                                            setEditForm(next);
+                                                            pushToFirebase(next, queue, photos);
+                                                        }}
+                                                        className="w-4 h-4 accent-[#39FF14] rounded"
+                                                    />
+                                                    <span>Family-Friendly Filter</span>
+                                                </label>
+                                            </div>
+
+                                            {boothTab === "songs" ? (
+                                                /* DJ Song Queue List */
+                                                <div className="space-y-2.5">
+                                                    {queue.length === 0 ? (
+                                                        <div className="py-8 text-center text-xs text-gray-500">
+                                                            No active song requests in queue.
+                                                        </div>
+                                                    ) : (
+                                                        queue.map((song, idx) => {
+                                                            const q = encodeURIComponent(`${song.title} ${song.artist}`);
+                                                            return (
+                                                                <div
+                                                                    key={song.id}
+                                                                    className="bg-neutral-900/90 border border-neutral-800 rounded-xl p-3.5 space-y-2.5"
+                                                                >
+                                                                    <div className="flex items-start justify-between gap-3">
+                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                            {song.albumArt ? (
+                                                                                <img
+                                                                                    src={song.albumArt}
+                                                                                    alt=""
+                                                                                    className="w-12 h-12 rounded-lg object-cover shrink-0 bg-neutral-800"
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center shrink-0">
+                                                                                    🎵
+                                                                                </div>
+                                                                            )}
+                                                                            <div className="min-w-0">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <span className="px-2 py-0.5 rounded bg-monster/15 text-monster text-[10px] font-extrabold">
+                                                                                        #{idx + 1} • 🔥 {song.votes || 1}
+                                                                                    </span>
+                                                                                    <h4 className="text-xs sm:text-sm font-bold text-white truncate">
+                                                                                        {song.title}
+                                                                                    </h4>
+                                                                                </div>
+                                                                                <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                                                                                    {song.artist} • Req by <strong className="text-gray-200">{song.requester}</strong>
+                                                                                </p>
+                                                                                <span
+                                                                                    className={`inline-block mt-1 text-[10px] font-bold ${
+                                                                                        song.explicit ? "text-amber-400" : "text-emerald-400"
+                                                                                    }`}
+                                                                                >
+                                                                                    {song.appropriateness}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRemoveSong(song.id)}
+                                                                            className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold border border-emerald-500/30 shrink-0 transition"
+                                                                        >
+                                                                            ✓ Played
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <div className="flex flex-wrap gap-2 pt-2 border-t border-neutral-800/80 text-[11px]">
+                                                                        <a
+                                                                            href={`https://open.spotify.com/search/${q}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 text-green-400 font-bold border border-neutral-800"
+                                                                        >
+                                                                            Spotify ↗
+                                                                        </a>
+                                                                        <a
+                                                                            href={`https://music.youtube.com/search?q=${q}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 text-red-400 font-bold border border-neutral-800"
+                                                                        >
+                                                                            YT Music ↗
+                                                                        </a>
+                                                                        <a
+                                                                            href={`https://www.google.com/search?q=${q}+lyrics+parent+advisory`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            className="px-2.5 py-1 rounded-lg bg-neutral-950 hover:bg-neutral-800 text-gray-300 font-bold border border-neutral-800"
+                                                                        >
+                                                                            Lyrics Check ↗
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                /* DJ Photo Moderation & 1-Tap Samsung Gallery Save */
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between text-xs text-gray-400">
+                                                        <span>Tap Save to download directly to your Samsung Gallery</span>
+                                                    </div>
+                                                    {photos.length === 0 ? (
+                                                        <div className="py-8 text-center text-xs text-gray-500">
+                                                            No guest photos uploaded yet.
+                                                        </div>
+                                                    ) : (
+                                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                                            {photos.map((p) => (
+                                                                <div
+                                                                    key={p.id}
+                                                                    className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 flex flex-col justify-between"
+                                                                >
+                                                                    <img src={p.url} alt="" className="w-full h-32 object-cover bg-black" />
+                                                                    <div className="p-2.5 space-y-2">
+                                                                        <p className="text-[11px] font-semibold text-white truncate">
+                                                                            📸 {p.uploader}
+                                                                        </p>
+                                                                        <div className="flex gap-1.5">
+                                                                            <a
+                                                                                href={p.url}
+                                                                                download={`wedding_photo_${p.id}.jpg`}
+                                                                                className="flex-1 py-1.5 px-2 rounded-lg bg-monster text-black text-[11px] font-extrabold text-center hover:bg-monster/90 transition"
+                                                                            >
+                                                                                Save to Gallery
+                                                                            </a>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => handleDeletePhoto(p.id)}
+                                                                                className="px-2.5 py-1.5 rounded-lg bg-red-950/70 hover:bg-red-900 text-red-300 text-[11px] font-bold"
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 3RD (BOTTOM OF DJ BOOTH): EVENT, DJ SETTINGS, TIP VIBE & CLOUD SYNC */}
+                                        <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-5 shadow-lg space-y-4">
+                                            <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-neutral-800 pb-2.5">
+                                                <span className="text-monster">⚙️</span>
+                                                <span>Event, DJ Settings, Tip Vibe &amp; Cloud Sync</span>
+                                            </h3>
+
+                                            {/* Tip Jar Vibe Selector */}
+                                            <div>
+                                                <label className="text-[11px] font-bold text-monster uppercase tracking-wider block mb-2">
+                                                    ⚡ Tip Jar Vibe Selector (Instant Switch)
+                                                </label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSelectTipVibe("monster")}
+                                                        className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition ${
+                                                            eventConfig.tipVibe === "monster"
+                                                                ? "bg-monster text-black border-monster shadow-md shadow-monster/20"
+                                                                : "bg-neutral-900 text-gray-300 border-neutral-700"
+                                                        }`}
+                                                    >
+                                                        ⚡ Monster Energy
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSelectTipVibe("drink")}
+                                                        className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition ${
+                                                            eventConfig.tipVibe === "drink"
+                                                                ? "bg-monster text-black border-monster shadow-md shadow-monster/20"
+                                                                : "bg-neutral-900 text-gray-300 border-neutral-700"
+                                                        }`}
+                                                    >
+                                                        🥤 Bar Drinks
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleSelectTipVibe("herb")}
+                                                        className={`py-2.5 px-3 rounded-xl text-xs font-extrabold border transition ${
+                                                            eventConfig.tipVibe === "herb"
+                                                                ? "bg-monster text-black border-monster shadow-md shadow-monster/20"
+                                                                : "bg-neutral-900 text-gray-300 border-neutral-700"
+                                                        }`}
+                                                    >
+                                                        🌿 Herb &amp; Joint
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                                <div>
+                                                    <label className="text-[11px] font-semibold text-gray-400 block mb-1">
+                                                        Couple / Event Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.coupleName}
+                                                        onChange={(e) => setEditForm({ ...editForm, coupleName: e.target.value })}
+                                                        className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-monster"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[11px] font-semibold text-gray-400 block mb-1">
+                                                        Venue Subtitle
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.venueSubtitle}
+                                                        onChange={(e) => setEditForm({ ...editForm, venueSubtitle: e.target.value })}
+                                                        className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-monster"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[11px] font-semibold text-gray-400 block mb-1">
+                                                        DJ Name (Next to Monster 'M')
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.djName}
+                                                        onChange={(e) => setEditForm({ ...editForm, djName: e.target.value })}
+                                                        className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-monster"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[11px] font-semibold text-gray-400 block mb-1">
+                                                        Cash App Tag ($Cashtag)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.cashTag}
+                                                        onChange={(e) => setEditForm({ ...editForm, cashTag: e.target.value })}
+                                                        className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-monster focus:outline-none focus:border-monster"
+                                                    />
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                    <label className="text-[11px] font-semibold text-gray-400 block mb-1">
+                                                        Samsung Quick Share / Couple Photo Link (For Couple QR)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.photoLink || ""}
+                                                        onChange={(e) => setEditForm({ ...editForm, photoLink: e.target.value })}
+                                                        placeholder="https://quickshare.samsungcloud.com/..."
+                                                        className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-monster"
+                                                    />
+                                                </div>
+                                                <div className="sm:col-span-2 pt-1 border-t border-neutral-900">
+                                                    <label className="text-[11px] font-bold text-monster block mb-1">
+                                                        ☁️ Firebase Realtime Database URL (Syncs Guest Phones to Your Phone)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={editForm.dbUrl || ""}
+                                                        onChange={(e) => setEditForm({ ...editForm, dbUrl: e.target.value })}
+                                                        placeholder="https://your-project-default-rtdb.firebaseio.com"
+                                                        className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-monster"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSaveSettings}
+                                                    className="px-5 py-2.5 rounded-xl bg-monster text-black text-xs font-extrabold hover:bg-monster/90 transition shadow-md shadow-monster/20"
+                                                >
+                                                    💾 Save &amp; Broadcast Settings
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleResetQueue}
+                                                    className={`px-3.5 py-2.5 rounded-xl text-xs font-bold border transition ${
+                                                        confirmReset
+                                                            ? "bg-red-600 text-white border-red-500"
+                                                            : "bg-red-950/60 hover:bg-red-900/60 text-red-300 border-red-800/50"
+                                                    }`}
+                                                >
+                                                    {confirmReset ? "⚠️ Tap Again to Confirm Reset" : "Reset Queue for Next Gig"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </main>
+
+                    {/* ================= LOW-PROFILE STICKY BOTTOM TIP PILL ================= */}
+                    <footer className="fixed bottom-0 left-0 right-0 z-40 bg-neutral-950/95 border-t border-neutral-800 backdrop-blur-md px-4 py-2">
+                        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-6 h-6 rounded-lg bg-monster/10 border border-monster/30 flex items-center justify-center shrink-0">
+                                    <MonsterClawLogo className="w-4 h-4" />
+                                </div>
+                                <span className="text-xs font-bold text-white truncate">{eventConfig.djName}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowTipModal(true)}
+                                className="px-4 py-1.5 rounded-full bg-monster text-black text-xs font-extrabold hover:bg-monster/90 transition shadow-md shadow-monster/25 shrink-0"
+                            >
+                                {tipMeta.footerCta}
+                            </button>
+                        </div>
+                    </footer>
+
+                    {/* ================= CASH APP TIP MODAL (BRIEF 1-WORD TIERS) ================= */}
+                    {showTipModal && (
+                        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl relative">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowTipModal(false)}
+                                    className="absolute top-4 right-4 text-gray-400 hover:text-white text-sm font-bold px-2"
+                                >
+                                    ✕
+                                </button>
+
+                                <div className="w-12 h-12 rounded-2xl bg-monster/20 border border-monster/30 flex items-center justify-center mx-auto monster-glow">
+                                    <MonsterClawLogo className="w-7 h-7" />
+                                </div>
+
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-white">{tipMeta.modalTitle}</h3>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        Tap an amount to open Cash App:{" "}
+                                        <span className="font-mono font-bold text-monster">{eventConfig.cashTag}</span>
+                                    </p>
+                                </div>
+
+                                {/* Strictly Brief 1-Word Tier Buttons ($3 / $5 / $10) */}
+                                <div className="grid grid-cols-3 gap-2.5 pt-1">
+                                    {tipMeta.tiers.map((tier) => (
+                                        <a
+                                            key={tier.label}
+                                            href={`https://cash.app/$${cleanCashtag}/${tier.amount}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="p-3.5 rounded-xl bg-neutral-950 hover:bg-neutral-800 border border-neutral-700/80 hover:border-monster transition flex flex-col items-center justify-center group"
+                                        >
+                                            <span className="text-base font-extrabold text-monster group-hover:scale-105 transition">
+                                                ${tier.amount}
+                                            </span>
+                                            <span className="text-xs font-bold text-white mt-0.5">{tier.label}</span>
+                                        </a>
+                                    ))}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowTipModal(false)}
+                                    className="w-full py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-semibold text-gray-300 transition"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ================= FULLSCREEN QR KIOSK MODAL ================= */}
+                    {qrModalMode && (
+                        <div className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 space-y-5 text-center">
+                            <div className="bg-white p-5 rounded-3xl shadow-2xl">
+                                <img
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=8&data=${encodeURIComponent(
+                                        qrModalMode === "couple" ? coupleAlbumUrl : currentAppUrl
+                                    )}`}
+                                    alt="Fullscreen QR Code"
+                                    className="w-64 h-64 object-contain"
+                                />
+                            </div>
+                            <div className="space-y-1 max-w-xs">
+                                <span className="inline-block px-3 py-0.5 rounded-full bg-monster/15 text-monster text-[11px] font-bold uppercase">
+                                    {qrModalMode === "couple" ? "For the Newlyweds 💍" : "Guest Access Pass 🎧"}
+                                </span>
+                                <h2 className="text-xl font-extrabold text-white">{eventConfig.coupleName}</h2>
+                                <p className="text-xs text-gray-300">
+                                    {qrModalMode === "couple"
+                                        ? "Scan to open and save all wedding reception photos!"
+                                        : "Scan with your phone camera to request songs & share photos!"}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setQrModalMode(null)}
+                                className="px-6 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-white border border-neutral-700 transition"
+                            >
+                                Exit Fullscreen
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+</html>
