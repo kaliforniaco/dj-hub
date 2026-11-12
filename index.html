@@ -1771,7 +1771,14 @@
       document.getElementById('pinModal').classList.add('hidden');
       document.getElementById('pinModal').classList.remove('flex');
     }
-
+    
+    function quickUnlockDjBooth() {
+      state.djUnlocked = true;
+      state.appMode = 'dj';
+      closePinModal();
+      renderAll();
+    }
+    
     function switchGuestTab(tab) {
       state.guestTab = tab;
       renderAll();
