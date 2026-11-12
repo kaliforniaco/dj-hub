@@ -727,14 +727,14 @@
       <div>
         <h3 class="text-lg font-black text-white">Unlock DJ Booth</h3>
         <p class="text-xs text-zinc-400 mt-1">
-          Enter your DJ PIN (Default: <strong id="pinHintText" class="text-emerald-400">1234</strong>)
+          Enter your DJ PIN (Default: <strong id="pinHintText" class="text-emerald-400">####</strong>)
         </p>
       </div>
       <input
         id="pinInputBox"
         type="password"
         inputmode="numeric"
-        placeholder="1234"
+        placeholder="####"
         class="w-full bg-[#070709] border border-zinc-700 rounded-2xl px-4 py-3 text-center text-lg tracking-widest font-black text-white focus:outline-none focus:border-emerald-500"
       />
       <div class="flex gap-2">
@@ -745,13 +745,7 @@
           Unlock
         </button>
       </div>
-      <button
-        type="button"
-        onclick="quickUnlockDjBooth()"
-        class="w-full py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-[11px] font-semibold text-emerald-400 border border-zinc-800"
-      >
-        ⚡ Instant Demo Unlock (Skip PIN)
-      </button>
+      
     </form>
   </div>
 
