@@ -727,14 +727,14 @@
       <div>
         <h3 class="text-lg font-black text-white">Unlock DJ Booth</h3>
         <p class="text-xs text-zinc-400 mt-1">
-          Enter your <strong id="pinHintText" class="text-emerald-400">DJ PIN</strong>)
+            Enter your <strong id="pinHintText" class="text-emerald-400">DJ PIN</strong>
         </p>
       </div>
       <input
         id="pinInputBox"
         type="password"
         inputmode="numeric"
-        placeholder="0000"
+        placeholder="______"
         class="w-full bg-[#070709] border border-zinc-700 rounded-2xl px-4 py-3 text-center text-lg tracking-widest font-black text-white focus:outline-none focus:border-emerald-500"
       />
       <div class="flex gap-2">
@@ -1661,7 +1661,7 @@
         document.getElementById('editCashtag').value = state.settings.cashtag;
         document.getElementById('editQuickShareUrl').value = state.settings.quickShareUrl || '';
         document.getElementById('editFirebaseUrl').value = FIREBASE_DB_URL || state.settings.firebaseUrl || '';
-        document.getElementById('editDjPin').value = state.settings.djPin || '1234';
+        document.getElementById('editDjPin').value = state.settings.djPin || '____';
         renderTipVibeButtons();
         drawer.classList.remove('hidden');
         document.getElementById('btnQuickEditLabel').textContent = 'Close Editor';
@@ -1747,7 +1747,7 @@
     // 10. Mode & Tab Navigation + Modals
     function switchMode(target) {
       if (target === 'dj' && !state.djUnlocked) {
-   //   document.getElementById('pinHintText').textContent = state.settings.djPin || '1234';
+        document.getElementById('pinHintText').textContent = 'Authorized PIN';
         document.getElementById('pinInputBox').value = '';
         document.getElementById('pinModal').classList.remove('hidden');
         document.getElementById('pinModal').classList.add('flex');
@@ -1760,10 +1760,10 @@
     function verifyPinSubmit(e) {
       e.preventDefault();
       const entered = document.getElementById('pinInputBox').value.trim();
-      if (entered === (state.settings.djPin || '1234') || entered === '1234') {
+      if (entered === state.settings.djPin) {
         quickUnlockDjBooth();
       } else {
-        triggerSamsungShadeAlert('🔒 Incorrect PIN', `Try PIN ${state.settings.djPin || '1234'} or tap Instant Demo Unlock.`, '', 'explicit');
+        triggerSamsungShadeAlert('🔒 Incorrect PIN'; //, `Try PIN ${state.settings.djPin || '1234'} or tap Instant Demo Unlock.`, '', 'explicit');
       }
     }
 
