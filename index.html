@@ -1747,7 +1747,7 @@
     // 10. Mode & Tab Navigation + Modals
     function switchMode(target) {
       if (target === 'dj' && !state.djUnlocked) {
-        document.getElementById('pinHintText').textContent = state.settings.djPin || '1234';
+   //   document.getElementById('pinHintText').textContent = state.settings.djPin || '1234';
         document.getElementById('pinInputBox').value = '';
         document.getElementById('pinModal').classList.remove('hidden');
         document.getElementById('pinModal').classList.add('flex');
