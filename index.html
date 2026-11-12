@@ -1773,13 +1773,6 @@
       }
     }
 
-    function quickUnlockDjBooth() {
-      state.djUnlocked = true;
-      state.appMode = 'dj';
-      closePinModal();
-      renderAll();
-    }
-
     function closePinModal() {
       document.getElementById('pinModal').classList.add('hidden');
       document.getElementById('pinModal').classList.remove('flex');
