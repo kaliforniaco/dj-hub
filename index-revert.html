@@ -1,0 +1,2188 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Wedding DJ & Event Hub • DJ Dave</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #070709;
+      color: #f4f4f5;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* Custom Scrollbar for Dark Mode */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #09090b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46;
+    }
+    @keyframes slideDownShade {
+      0% { transform: translate(-50%, -120%); opacity: 0; }
+      100% { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .samsung-shade-anim {
+      animation: slideDownShade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 22px rgba(34, 197, 94, 0.28); }
+      50% { box-shadow: 0 0 34px rgba(34, 197, 94, 0.52); }
+    }
+    .monster-glow {
+      animation: pulseGlow 2.8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#070709] text-zinc-100 pb-32 selection:bg-emerald-500 selection:text-black">
+
+  <!-- ==========================================
+       SIMULATED SAMSUNG / ANDROID NOTIFICATION SHADE BANNER
+       ========================================== -->
+  <div id="samsungShadeBanner" class="fixed top-3 left-1/2 -translate-x-1/2 z-[70] w-[94%] max-w-md hidden samsung-shade-anim">
+    <div class="bg-[#141418]/95 backdrop-blur-2xl border border-zinc-700/90 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] ring-1 ring-emerald-500/40">
+      <div class="flex items-start gap-3.5">
+        <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 mt-0.5">
+          <span class="text-lg">🎧</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
+              <span>DJ BOOTH SHADE</span> • <span>NOW</span>
+            </span>
+            <button onclick="hideSamsungShade()" class="text-xs text-zinc-400 hover:text-white font-bold px-1.5">✕</button>
+          </div>
+          <p id="shadeTitle" class="text-sm font-extrabold text-white truncate mt-0.5"></p>
+          <p id="shadeBody" class="text-xs text-zinc-300 leading-snug mt-0.5"></p>
+          <div id="shadeMetricRow" class="mt-2 flex items-center gap-2 flex-wrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       TOP NAVIGATION & VIEW SWITCHER
+       ========================================== -->
+  <header class="sticky top-0 z-40 bg-[#070709]/90 backdrop-blur-xl border-b border-zinc-800/80 px-3 py-2.5">
+    <div class="max-w-3xl mx-auto flex items-center justify-between gap-2">
+      <!-- Live Event Indicator -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="relative flex h-2.5 w-2.5 shrink-0">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        </span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <p id="navEventName" class="text-xs sm:text-sm font-extrabold text-white truncate">Sarah &amp; James's Wedding</p>
+            <span id="cloudSyncBadge" class="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-800 text-zinc-400 border border-zinc-700 shrink-0">LOCAL</span>
+          </div>
+          <p id="navEventSubtitle" class="text-[10px] text-zinc-400 truncate hidden sm:block">Reception Party &amp; Request Hub</p>
+        </div>
+      </div>
+
+      <!-- Mode Switcher (Guest View vs DJ Booth) -->
+      <div class="flex items-center bg-[#121216] p-1 rounded-full border border-zinc-800 shrink-0">
+        <button id="btnModeGuest" onclick="switchMode('guest')" class="px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 bg-emerald-500 text-black shadow-md">
+          <span>📱</span>
+          <span>Guest View</span>
+        </button>
+        <button id="btnModeDj" onclick="switchMode('dj')" class="px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 text-zinc-400 hover:text-white relative">
+          <span id="djLockIcon">🔒</span>
+          <span>DJ Booth</span>
+          <span id="djBadgeCount" class="ml-0.5 px-1.5 py-0.2 bg-rose-500 text-white text-[10px] font-extrabold rounded-full">3</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       MAIN CONTAINER
+       ========================================== -->
+  <main class="max-w-3xl mx-auto px-4 pt-5">
+
+    <!-- ==========================================
+         VIEW 1: GUEST INTERFACE (PITCH-BLACK OLED)
+         ========================================== -->
+    <div id="guestView" class="space-y-6">
+      
+      <!-- Guest Hero Banner -->
+      <section class="bg-gradient-to-br from-[#121217] via-[#121217] to-emerald-950/30 border border-zinc-800/90 rounded-3xl p-5 shadow-2xl">
+        <div class="flex items-start justify-between gap-3">
+          <div class="space-y-1.5">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="heroDjStatus">DJ Dave Live • Request Line Open</span>
+              </span>
+              <span id="heroFamilyBadge" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold">
+                🛡️ Family-Friendly Filter Active
+              </span>
+            </div>
+            <h1 id="heroEventName" class="text-2xl sm:text-3xl font-black tracking-tight text-white">Sarah &amp; James's Wedding</h1>
+            <p id="heroEventSubtitle" class="text-xs sm:text-sm font-semibold text-emerald-300/90">Reception Party &amp; Request Hub</p>
+            <p class="text-xs text-zinc-400 pt-0.5">
+              Search &amp; request songs for the dancefloor, upvote the queue, or snap photos for the newlyweds!
+            </p>
+          </div>
+
+          <button onclick="openFullscreenQr('guest')" class="p-3 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/80 text-zinc-200 flex flex-col items-center gap-1 shrink-0 transition" title="Show Guest QR Code">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h6v6H3V3zm12 0h6v6h-6V3zM3 15h6v6H3v-6zm13 0h2v2h-2v-2zm3 3h2v3h-2v-3zm-3 3h2v-2h-2v2zm3-6h2v2h-2v-2z"/>
+            </svg>
+            <span class="text-[10px] font-bold text-zinc-400">Share QR</span>
+          </button>
+        </div>
+
+        <!-- Guest Navigation Tabs -->
+        <div class="grid grid-cols-3 gap-2 mt-5 bg-[#070709] p-1.5 rounded-2xl border border-zinc-800/90">
+          <button id="guestTabSongs" onclick="switchGuestTab('songs')" class="py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all bg-emerald-500 text-black shadow-lg">
+            <span>🎵</span>
+            <span>Song Requests</span>
+          </button>
+          <button id="guestTabSnap" onclick="switchGuestTab('snap')" class="py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all text-zinc-400 hover:text-white">
+            <span>📸</span>
+            <span>Snap &amp; Share</span>
+          </button>
+          <button id="guestTabGallery" onclick="switchGuestTab('gallery')" class="py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all text-zinc-400 hover:text-white">
+            <span>🖼️</span>
+            <span id="guestGalleryTabLabel">Gallery (2)</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- GUEST TAB 1: SONG SEARCH & CROWD QUEUE -->
+      <div id="guestSongsPane" class="space-y-6">
+        <section class="bg-[#121217] border border-zinc-800/90 rounded-3xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+              <span class="text-emerald-400">🎶</span> Find a Song to Request
+            </h2>
+            <button type="button" id="btnToggleManual" onclick="toggleManualSongMode()" class="text-xs text-cyan-400 hover:text-cyan-300 font-bold underline">
+              Manual / Remix Entry
+            </button>
+          </div>
+
+          <!-- Live iTunes Search Input -->
+          <div id="liveSearchContainer" class="space-y-3">
+            <div class="relative">
+              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">🔍</span>
+              <input
+                id="songSearchInput"
+                type="text"
+                oninput="handleSongSearchInput(this.value)"
+                placeholder="Search any song or artist (e.g. Earth Wind & Fire, Usher, Dua Lipa)..."
+                class="w-full bg-[#070709] border border-zinc-700/90 rounded-2xl pl-11 pr-20 py-3.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+              <button
+                id="btnClearSearch"
+                type="button"
+                onclick="clearSongSearch()"
+                class="hidden absolute right-3 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white"
+              >
+                Clear
+              </button>
+            </div>
+
+            <!-- Quick Launch Guest's Spotify / YouTube Music -->
+            <div class="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-zinc-400">
+              <span>Checking your own playlist first?</span>
+              <div class="flex items-center gap-3">
+                <a id="guestSpotifyLink" href="https://open.spotify.com/search/wedding%20party%20hits" target="_blank" rel="noreferrer" class="text-[#1ed760] hover:underline font-bold inline-flex items-center gap-1">
+                  Open Spotify ↗
+                </a>
+                <span>•</span>
+                <a id="guestYtMusicLink" href="https://music.youtube.com/search?q=wedding+party+hits" target="_blank" rel="noreferrer" class="text-rose-400 hover:underline font-bold inline-flex items-center gap-1">
+                  YouTube Music ↗
+                </a>
+              </div>
+            </div>
+
+            <!-- Search Status & Results List -->
+            <div id="searchStatusText" class="hidden text-center py-3 text-xs text-zinc-400 animate-pulse">
+              Searching catalog &amp; calculating Wedding Appropriateness Fit...
+            </div>
+
+            <div id="searchResultsList" class="hidden bg-[#070709] border border-zinc-800 rounded-2xl divide-y divide-zinc-800/80 overflow-hidden max-h-80 overflow-y-auto"></div>
+
+            <!-- Selected Track Preview Pill -->
+            <div id="selectedTrackCard" class="hidden p-3.5 rounded-2xl bg-emerald-950/25 border border-emerald-500/50 space-y-2"></div>
+          </div>
+
+          <!-- Manual / Remix Fallback Form -->
+          <div id="manualSongContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              id="manualTitleInput"
+              type="text"
+              placeholder="Song Title / Remix Name *"
+              class="bg-[#070709] border border-zinc-700 rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+            />
+            <input
+              id="manualArtistInput"
+              type="text"
+              placeholder="Artist / DJ *"
+              class="bg-[#070709] border border-zinc-700 rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          <!-- Requester Name & Dedication Note -->
+          <form onsubmit="submitSongRequest(event)" class="space-y-3 pt-1">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                id="requesterNameInput"
+                type="text"
+                placeholder="Your Name / Table # (optional)"
+                class="bg-[#070709] border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+              <input
+                id="requesterNoteInput"
+                type="text"
+                placeholder="Dedication / Note (e.g. Bride's college crew!)"
+                class="bg-[#070709] border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black font-black text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2"
+            >
+              <span>🚀</span>
+              <span>Send Song Request to DJ Booth</span>
+            </button>
+          </form>
+        </section>
+
+        <!-- Live Crowd Queue -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+              <span>🔥</span> Live Crowd Request Queue
+            </h3>
+            <span class="text-xs text-zinc-400">Tap 🔥 to boost songs up the list</span>
+          </div>
+
+          <div id="guestQueueList" class="space-y-2.5"></div>
+        </section>
+      </div>
+
+      <!-- GUEST TAB 2: SNAP & SHARE PHOTO DROP -->
+      <div id="guestSnapPane" class="hidden space-y-5">
+        <section class="bg-[#121217] border border-zinc-800 rounded-3xl p-5 shadow-xl space-y-5">
+          <div>
+            <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
+              <span>📸</span> Snap &amp; Share for the Newlyweds
+            </h2>
+            <p class="text-xs text-zinc-400 mt-1">
+              Take a photo or pick from your camera roll! All photos are compressed for fast venue Wi-Fi and sent to the DJ/Couple album.
+            </p>
+          </div>
+
+          <input id="photoFileInput" type="file" accept="image/*" onchange="handlePhotoSelected(event)" class="hidden" />
+
+          <div id="photoDropZone">
+            <button
+              type="button"
+              onclick="document.getElementById('photoFileInput').click()"
+              class="w-full py-12 px-4 rounded-3xl border-2 border-dashed border-emerald-500/50 hover:border-emerald-400 bg-[#070709]/80 hover:bg-emerald-950/15 transition flex flex-col items-center justify-center gap-3 group"
+            >
+              <div class="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center text-3xl group-hover:scale-105 transition">
+                📷
+              </div>
+              <div class="text-center">
+                <p class="text-base font-extrabold text-white">Tap to Take a Photo or Choose from Gallery</p>
+                <p class="text-xs text-zinc-400 mt-1">Instant client-side compression • Zero app install needed</p>
+              </div>
+            </button>
+          </div>
+
+          <!-- Preview after selecting photo -->
+          <form id="photoUploadForm" onsubmit="submitGuestPhoto(event)" class="hidden space-y-4">
+            <div class="relative rounded-2xl overflow-hidden border border-zinc-700 bg-black">
+              <img id="photoPreviewImg" src="" alt="Preview" class="w-full max-h-80 object-contain mx-auto" />
+              <button
+                type="button"
+                onclick="clearPhotoPreview()"
+                class="absolute top-3 right-3 px-3 py-1.5 rounded-full bg-black/80 text-white hover:bg-rose-600 text-xs font-bold transition"
+              >
+                ✕ Change Photo
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                id="photoGuestNameInput"
+                type="text"
+                placeholder="Your Name / Table (optional)"
+                class="bg-[#070709] border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+              <input
+                id="photoCaptionInput"
+                type="text"
+                placeholder="Add a caption or wish for the couple! 🥂"
+                class="bg-[#070709] border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black font-black text-sm shadow-lg transition flex items-center justify-center gap-2"
+            >
+              <span>✨</span>
+              <span>Upload Photo to Couple's Album</span>
+            </button>
+          </form>
+
+          <div class="p-3.5 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex items-start gap-3 text-xs text-zinc-400">
+            <span class="text-emerald-400 text-base">🛡️</span>
+            <span>
+              Photos are reviewed by the DJ Booth before appearing in the public Couple's Gallery so everything stays wedding-appropriate.
+            </span>
+          </div>
+        </section>
+      </div>
+
+      <!-- GUEST TAB 3: APPROVED COUPLE'S PHOTO GALLERY -->
+      <div id="guestGalleryPane" class="hidden space-y-4">
+        <div id="guestQuickShareBanner" class="hidden bg-gradient-to-r from-blue-950/80 to-cyan-950/80 border border-cyan-500/40 rounded-3xl p-4 flex items-center justify-between gap-3">
+          <div>
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-cyan-300">Samsung Quick Share / Cloud Folder</span>
+            <h3 class="text-sm font-extrabold text-white">High-Resolution Couple's Album Linked</h3>
+            <p class="text-xs text-cyan-100/80">Tap to open the full-resolution shared folder directly.</p>
+          </div>
+          <a id="guestQuickShareBtn" href="#" target="_blank" rel="noreferrer" class="px-4 py-2.5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-black shrink-0">
+            Open Album ↗
+          </a>
+        </div>
+
+        <div id="guestGalleryGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+      </div>
+
+    </div>
+
+    <!-- ==========================================
+         VIEW 2: DJ BOOTH CONSOLE (PIN 1234)
+         ========================================== -->
+    <div id="djView" class="hidden space-y-6">
+
+      <!-- PERSISTENT TOP HERO TILE: GUEST ACCESS PASS QR + INLINE LIVE EDITOR -->
+      <section class="bg-gradient-to-br from-[#121217] via-[#121217] to-emerald-950/35 border-2 border-emerald-500/50 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4">
+        <div class="flex flex-col md:flex-row items-center gap-5">
+          
+          <!-- Scannable Guest Access Pass QR Tile (With Instant Fallback) -->
+          <div
+            onclick="openFullscreenQr('guest')"
+            class="bg-white p-3.5 rounded-3xl shadow-2xl shrink-0 cursor-pointer hover:scale-[1.02] transition text-center"
+            title="Tap to Enlarge Fullscreen Kiosk Pass"
+          >
+            <img
+              id="djHeroQrImg"
+              src=""
+              alt="Guest Access Pass QR"
+              class="w-36 h-36 sm:w-40 sm:h-40 object-contain mx-auto"
+              onerror="this.style.display='none'; document.getElementById('djHeroQrFallback').classList.remove('hidden');"
+            />
+            <div id="djHeroQrFallback" class="hidden w-36 h-36 sm:w-40 sm:h-40 flex items-center justify-center bg-white text-black p-2">
+              <!-- Inline SVG QR Fallback so it never breaks even offline -->
+              <svg viewBox="0 0 100 100" class="w-full h-full fill-black">
+                <rect x="5" y="5" width="28" height="28" fill="none" stroke="black" stroke-width="6"/>
+                <rect x="13" y="13" width="12" height="12"/>
+                <rect x="67" y="5" width="28" height="28" fill="none" stroke="black" stroke-width="6"/>
+                <rect x="75" y="13" width="12" height="12"/>
+                <rect x="5" y="67" width="28" height="28" fill="none" stroke="black" stroke-width="6"/>
+                <rect x="13" y="75" width="12" height="12"/>
+                <rect x="42" y="10" width="8" height="8"/><rect x="52" y="18" width="8" height="16"/>
+                <rect x="42" y="42" width="16" height="16"/><rect x="12" y="44" width="18" height="8"/>
+                <rect x="68" y="44" width="18" height="8"/><rect x="44" y="68" width="8" height="22"/>
+                <rect x="62" y="64" width="12" height="12"/><rect x="78" y="76" width="14" height="14"/>
+              </svg>
+            </div>
+            <div class="mt-2 text-[11px] font-black text-zinc-900 uppercase tracking-wider flex items-center justify-center gap-1">
+              <span>⛶</span> <span>Tap Fullscreen</span>
+            </div>
+          </div>
+
+          <!-- Top Tile Controls & Info -->
+          <div class="flex-1 space-y-3 text-center md:text-left w-full">
+            <div class="flex flex-wrap items-center justify-center md:justify-between gap-2">
+              <span class="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black uppercase tracking-wider">
+                🎫 Guest Access Pass • Static Table QR
+              </span>
+
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onclick="toggleQuickEditDrawer()"
+                  class="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-emerald-300 text-xs font-extrabold flex items-center gap-1.5 transition"
+                >
+                  <span>✏️</span>
+                  <span id="btnQuickEditLabel">Edit Event / DJ / Tag</span>
+                </button>
+                <button
+                  type="button"
+                  onclick="openGithubModal()"
+                  class="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-cyan-300 text-xs font-extrabold flex items-center gap-1.5 transition"
+                >
+                  <span>🚀</span>
+                  <span>GitHub Pages Guide</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h2 id="djTopEventTitle" class="text-xl sm:text-2xl font-black text-white tracking-tight">Sarah &amp; James's Wedding</h2>
+              <p id="djTopEventSubtitle" class="text-xs text-zinc-400 mt-0.5">Reception Party &amp; Request Hub • Static QR never needs re-printing!</p>
+            </div>
+
+            <!-- Action Buttons Row -->
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
+              <button
+                type="button"
+                onclick="openFullscreenQr('guest')"
+                class="px-3.5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black flex items-center gap-1.5 shadow-lg shadow-emerald-500/20"
+              >
+                <span>⛶</span> Fullscreen Guest Pass
+              </button>
+
+              <!-- Family-Friendly Event Filter Checkbox -->
+              <button
+                type="button"
+                onclick="toggleFamilyFriendlyFilter()"
+                id="btnFamilyFilter"
+                class="px-3.5 py-2.5 rounded-2xl border text-xs font-extrabold flex items-center gap-2 transition bg-emerald-950/70 border-emerald-500/60 text-emerald-300"
+              >
+                <span id="familyCheckIcon" class="w-4 h-4 rounded bg-emerald-400 text-black flex items-center justify-center text-[11px] font-black">✓</span>
+                <span>Family-Friendly Event Filter</span>
+              </button>
+
+              <button
+                type="button"
+                onclick="testSamsungNotification()"
+                class="px-3.5 py-2.5 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-extrabold flex items-center gap-1.5"
+              >
+                <span>🔔</span> Test Samsung Shade Alert
+              </button>
+
+              <button
+                type="button"
+                onclick="openFullscreenQr('couple')"
+                class="px-3.5 py-2.5 rounded-2xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-extrabold flex items-center gap-1.5"
+              >
+                <span>💍</span> Couple's Photo QR
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inline Quick Editor Drawer (Edit Event Name, Subtitle, DJ Name, Cash App Tag, Reset Queue) -->
+        <form id="quickEditDrawer" onsubmit="saveLiveSettings(event)" class="hidden pt-4 border-t border-zinc-800/90 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-black uppercase tracking-wider text-emerald-400">
+              ⚡ Live Event, DJ Name &amp; Cashtag Editor (Zero Code Edits Needed)
+            </span>
+            <button
+              type="button"
+              onclick="openResetGigModal()"
+              class="px-3 py-1 rounded-xl bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 text-xs font-bold"
+            >
+              🔄 Reset Queue for New Gig
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold text-zinc-400 mb-1">Event / Couple Name</label>
+              <input id="editEventName" type="text" class="w-full bg-[#070709] border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-zinc-400 mb-1">Venue / Subtitle</label>
+              <input id="editEventSubtitle" type="text" class="w-full bg-[#070709] border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-cyan-300 mb-1">DJ Name (Next to Monster 'M')</label>
+              <input id="editDjName" type="text" class="w-full bg-[#070709] border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-emerald-400 mb-1">Cash App $Cashtag</label>
+              <input id="editCashtag" type="text" class="w-full bg-[#070709] border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500" />
+            </div>
+          </div>
+
+          <!-- Tip Jar Vibe Selector (Monster / Drink / Joint) -->
+          <div class="pt-1">
+            <label class="block text-[11px] font-bold text-emerald-400 mb-1.5">Tip Jar Vibe (Footer &amp; Modal Tiers)</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" id="vibeBtnMonster" onclick="selectTipVibe('monster')" class="py-2.5 px-3 rounded-xl border text-xs font-black transition bg-emerald-500 text-black border-emerald-400 shadow-lg">
+                ⚡ Monster (Single / Tallboy / 4-Pack)
+              </button>
+              <button type="button" id="vibeBtnDrink" onclick="selectTipVibe('drink')" class="py-2.5 px-3 rounded-xl border text-xs font-extrabold transition bg-[#070709] border-zinc-700 text-zinc-300 hover:text-white">
+                🥤 Drink (Water / Soda / Cocktail)
+              </button>
+              <button type="button" id="vibeBtnJoint" onclick="selectTipVibe('joint')" class="py-2.5 px-3 rounded-xl border text-xs font-extrabold transition bg-[#070709] border-zinc-700 text-zinc-300 hover:text-white">
+                🌿 Joint (Green / Silver / Gold)
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div>
+              <label class="block text-[11px] font-bold text-purple-300 mb-1">Samsung Quick Share / Cloud Photo Link</label>
+              <input id="editQuickShareUrl" type="url" placeholder="https://quickshare.samsungcloud.com/..." class="w-full bg-[#070709] border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-emerald-300 mb-1">☁️ Firebase Realtime DB URL (Optional Override)</label>
+              <input id="editFirebaseUrl" type="url" placeholder="https://your-project-default-rtdb.firebaseio.com" class="w-full bg-[#070709] border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-zinc-400 mb-1">DJ Booth PIN</label>
+              <input id="editDjPin" type="text" placeholder="1234" class="w-full bg-[#070709] border border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500" />
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-1">
+            <button type="button" onclick="toggleQuickEditDrawer()" class="px-4 py-2 rounded-xl bg-zinc-900 text-zinc-400 text-xs font-bold">
+              Close
+            </button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black shadow-lg">
+              Save &amp; Update Live
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- DJ Sub-Tabs -->
+      <div class="grid grid-cols-2 gap-2 bg-[#121217] p-1.5 rounded-2xl border border-zinc-800">
+        <button id="djTabQueueBtn" onclick="switchDjTab('queue')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition bg-emerald-500 text-black shadow-lg">
+          <span>🎧</span>
+          <span id="djQueueTabCount">Song Queue (3)</span>
+        </button>
+        <button id="djTabPhotosBtn" onclick="switchDjTab('photos')" class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition text-zinc-400 hover:text-white">
+          <span>📸</span>
+          <span id="djPhotosTabCount">Photo Moderation (2)</span>
+        </button>
+      </div>
+
+      <!-- DJ SUB-PANE 1: SONG QUEUE WITH APPROPRIATENESS METRIC -->
+      <div id="djQueuePane" class="space-y-3">
+        <div id="djQueueList" class="space-y-3"></div>
+      </div>
+
+      <!-- DJ SUB-PANE 2: PHOTO MODERATION & SAMSUNG QUICK SHARE -->
+      <div id="djPhotosPane" class="hidden space-y-5">
+        <div class="bg-[#121217] border border-zinc-800 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+              <span>📲</span> Samsung Phone Export &amp; Couple's QR Handoff
+            </h3>
+            <p class="text-xs text-zinc-400">
+              Approve guest photos below, download them in 1 tap to your Samsung Gallery, or link a Samsung Quick Share folder for the newlyweds.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button onclick="downloadAllApprovedPhotos()" class="px-3.5 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white text-xs font-bold">
+              ⬇️ Download Approved
+            </button>
+            <button onclick="openFullscreenQr('couple')" class="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black shadow-lg">
+              💍 Couple's Photo QR
+            </button>
+          </div>
+        </div>
+
+        <div id="djPhotosGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+       STICKY FOOTER: "BUY DJ DAVE A MONSTER" TIP BAR
+       ========================================== -->
+  <div class="fixed bottom-0 inset-x-0 z-30 bg-gradient-to-t from-[#070709] via-[#070709]/95 to-transparent pt-4 pb-3 px-4">
+    <div class="max-w-xl mx-auto">
+      <button
+        onclick="openMonsterModal()"
+        class="w-full py-3 px-4 sm:px-5 rounded-2xl bg-[#121216] hover:bg-zinc-900 border-2 border-[#22c55e] monster-glow flex items-center justify-between gap-3 group transition"
+      >
+        <div class="flex items-center gap-3 min-w-0">
+          <!-- Tokenized Monster Energy-style 3-Claw 'M' SVG Emblem -->
+          <div class="shrink-0 group-hover:scale-110 transition transform">
+            <svg viewBox="0 0 36 36" fill="none" class="w-10 h-10 drop-shadow-[0_0_8px_rgba(34,197,94,0.65)]">
+              <rect x="1.5" y="1.5" width="33" height="33" rx="9" fill="#050805" stroke="#22c55e" stroke-width="1.8"/>
+              <path d="M7 9.5L13.5 7.5L18 9.8L22.5 7.5L29 9.5L26.5 11.8L22 10L18 12L14 10L9.5 11.8L7 9.5Z" fill="#22c55e"/>
+              <path d="M8.5 8.5L12.8 7.2L14 17.5L12.6 29.5L9.2 26.8L10.3 17.5L8.5 8.5Z" fill="#22c55e"/>
+              <path d="M16.2 9.2L20.2 8.2L20.8 18.2L19.1 30.5L16.3 27.6L17.2 18.2L16.2 9.2Z" fill="#22c55e"/>
+              <path d="M23.5 8.2L27.6 7.2L28.2 17.5L26.4 29.5L23.2 26.8L24.5 17.5L23.5 8.2Z" fill="#22c55e"/>
+            </svg>
+          </div>
+          <div class="text-left min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-xs sm:text-sm font-black text-white tracking-tight">
+                Buy <span id="footerDjName" class="text-[#22c55e]">DJ Dave</span> a <span id="footerVibeNoun">Monster</span>
+              </span>
+              <span id="footerVibeBadge" class="inline-flex items-center px-1.5 py-0.5 rounded bg-[#22c55e]/15 border border-[#22c55e]/40 text-[#22c55e] font-black text-[10px] tracking-widest">
+                M⚡
+              </span>
+              <span class="text-xs text-zinc-300 font-semibold hidden sm:inline">
+                (for the next gig!)
+              </span>
+            </div>
+            <p class="text-[11px] text-zinc-400 truncate">
+              Loving the mix? Fuel <span id="footerDjNameSub">DJ Dave</span> via Cash App (<span id="footerCashtag" class="text-emerald-400 font-semibold">$ourmtnlove</span>)
+            </p>
+          </div>
+        </div>
+        <span id="footerTipBtnLabel" class="px-3.5 py-2 rounded-xl bg-[#22c55e] text-black font-black text-xs shrink-0 shadow-md">
+          Tip DJ Dave
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 1: "BUY DJ DAVE A MONSTER" CASH APP MODAL
+       ========================================== -->
+  <div id="monsterModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-[#141419] border-2 border-[#22c55e]/60 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl relative">
+      <button onclick="closeMonsterModal()" class="absolute top-4 right-4 p-2 rounded-full bg-zinc-900 text-zinc-400 hover:text-white">✕</button>
+
+      <div class="flex items-center gap-3.5">
+        <svg viewBox="0 0 36 36" fill="none" class="w-14 h-14 shrink-0 drop-shadow-[0_0_12px_rgba(34,197,94,0.65)]">
+          <rect x="1.5" y="1.5" width="33" height="33" rx="9" fill="#050805" stroke="#22c55e" stroke-width="1.8"/>
+          <path d="M7 9.5L13.5 7.5L18 9.8L22.5 7.5L29 9.5L26.5 11.8L22 10L18 12L14 10L9.5 11.8L7 9.5Z" fill="#22c55e"/>
+          <path d="M8.5 8.5L12.8 7.2L14 17.5L12.6 29.5L9.2 26.8L10.3 17.5L8.5 8.5Z" fill="#22c55e"/>
+          <path d="M16.2 9.2L20.2 8.2L20.8 18.2L19.1 30.5L16.3 27.6L17.2 18.2L16.2 9.2Z" fill="#22c55e"/>
+          <path d="M23.5 8.2L27.6 7.2L28.2 17.5L26.4 29.5L23.2 26.8L24.5 17.5L23.5 8.2Z" fill="#22c55e"/>
+        </svg>
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-widest text-[#22c55e]">
+            Late-Night Booth Fuel • <span id="modalDjNameBadge">DJ Dave</span>
+          </span>
+          <h3 class="text-xl font-black text-white">
+            Buy <span id="modalDjNameTitle" class="text-[#22c55e]">DJ Dave</span> a <span id="modalVibeNoun">Monster</span>!
+          </h3>
+        </div>
+      </div>
+
+      <p class="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+        Having a blast on the dancefloor? Send <span id="modalDjNameBody">DJ Dave</span> an energy boost for tear-down &amp; the next gig directly via Cash App!
+      </p>
+
+      <div class="grid grid-cols-3 gap-2.5">
+        <button type="button" onclick="selectMonsterAmount(3)" id="amtBtn3" class="py-3 px-2 rounded-2xl border text-center transition bg-[#070709] border-zinc-800 text-zinc-400 hover:text-white">
+          <p class="text-lg font-black text-[#22c55e]">$3</p>
+          <p id="tierLabel3" class="text-xs font-extrabold">Single</p>
+        </button>
+        <button type="button" onclick="selectMonsterAmount(5)" id="amtBtn5" class="py-3 px-2 rounded-2xl border text-center transition bg-[#22c55e]/20 border-[#22c55e] text-white shadow-lg">
+          <p class="text-lg font-black text-[#22c55e]">$5</p>
+          <p id="tierLabel5" class="text-xs font-extrabold">Tallboy</p>
+        </button>
+        <button type="button" onclick="selectMonsterAmount(10)" id="amtBtn10" class="py-3 px-2 rounded-2xl border text-center transition bg-[#070709] border-zinc-800 text-zinc-400 hover:text-white">
+          <p class="text-lg font-black text-[#22c55e]">$10</p>
+          <p id="tierLabel10" class="text-xs font-extrabold">4-Pack</p>
+        </button>
+      </div>
+
+      <div class="bg-[#070709] border border-zinc-800 rounded-2xl p-3.5 flex items-center justify-between">
+        <span class="text-xs text-zinc-400 font-semibold">Cash App Tag:</span>
+        <span id="modalCashtagDisplay" class="text-sm font-mono font-black text-[#22c55e]">$ourmtnlove</span>
+      </div>
+
+      <a
+        id="cashAppLaunchLink"
+        href="https://cash.app/$ourmtnlove/5"
+        target="_blank"
+        rel="noreferrer"
+        class="w-full py-4 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-black font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#22c55e]/30 transition"
+      >
+        <span id="cashAppBtnText">Open Cash App ($5 to $ourmtnlove) ↗</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 2: DJ BOOTH PIN UNLOCK MODAL
+       ========================================== -->
+  <div id="pinModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4">
+    <form onsubmit="verifyPinSubmit(event)" class="bg-[#141419] border border-zinc-800 rounded-3xl max-w-xs w-full p-6 space-y-4 text-center shadow-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto text-xl">
+        🔐
+      </div>
+      <div>
+        <h3 class="text-lg font-black text-white">Unlock DJ Booth</h3>
+        <p class="text-xs text-zinc-400 mt-1">
+          Enter your <strong id="pinHintText" class="text-emerald-400">DJ PIN</strong>)
+        </p>
+      </div>
+      <input
+        id="pinInputBox"
+        type="password"
+        inputmode="numeric"
+        placeholder="0000"
+        class="w-full bg-[#070709] border border-zinc-700 rounded-2xl px-4 py-3 text-center text-lg tracking-widest font-black text-white focus:outline-none focus:border-emerald-500"
+      />
+      <div class="flex gap-2">
+        <button type="button" onclick="closePinModal()" class="flex-1 py-3 rounded-2xl bg-zinc-900 text-zinc-400 font-bold text-xs">
+          Cancel
+        </button>
+        <button type="submit" class="flex-1 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs">
+          Unlock
+        </button>
+      </div>
+      
+    </form>
+  </div>
+
+  <!-- ==========================================
+       MODAL 3: FULLSCREEN KIOSK QR PASS MODAL
+       ========================================== -->
+  <div id="qrFullscreenModal" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-[#141419] border border-zinc-700 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl relative">
+      <button onclick="closeFullscreenQr()" class="absolute top-4 right-4 p-2 rounded-full bg-zinc-900 text-zinc-400 hover:text-white">✕</button>
+
+      <span id="qrModalBadge" class="inline-block px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-black uppercase tracking-wider">
+        Guest Access Pass 🎧
+      </span>
+
+      <h3 id="qrModalTitle" class="text-xl font-black text-white">Sarah &amp; James's Wedding</h3>
+      <p id="qrModalSubtitle" class="text-xs text-zinc-400">Scan with your phone camera to request songs, upvote the queue &amp; drop wedding photos!</p>
+
+      <div class="bg-white p-4 rounded-3xl inline-block mx-auto shadow-2xl">
+        <img id="qrModalImg" src="" alt="QR Code" class="w-56 h-56 object-contain mx-auto" />
+      </div>
+
+      <p id="qrModalUrlText" class="text-[11px] text-zinc-500 break-all px-2"></p>
+
+      <button onclick="closeFullscreenQr()" class="w-full py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs">
+        Close Pass
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 4: RESET GIG CONFIRMATION MODAL
+       ========================================== -->
+  <div id="resetGigModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-[#141419] border border-rose-500/40 rounded-3xl max-w-sm w-full p-6 space-y-4 text-center shadow-2xl">
+      <div class="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-xl">
+        🔄
+      </div>
+      <h3 class="text-lg font-black text-white">Reset Queue for Next Gig?</h3>
+      <p class="text-xs text-zinc-400 leading-relaxed">
+        Your printed table QR code &amp; URL never change! Clearing the queue removes old song requests and photos so this exact same QR code is ready for your next wedding reception.
+      </p>
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="closeResetGigModal()" class="flex-1 py-3 rounded-2xl bg-zinc-900 text-zinc-400 font-bold text-xs">
+          Cancel
+        </button>
+        <button type="button" onclick="confirmResetGig()" class="flex-1 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs">
+          Clear &amp; Start Fresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 5: GITHUB PAGES 60-SECOND SETUP GUIDE
+       ========================================== -->
+  <div id="githubModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4">
+    <div class="bg-[#141419] border border-zinc-700 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto relative">
+      <button onclick="closeGithubModal()" class="absolute top-4 right-4 p-2 rounded-full bg-zinc-900 text-zinc-400 hover:text-white">✕</button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-xl">
+          🚀
+        </div>
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">Zero Build Step Required</span>
+          <h3 class="text-lg font-black text-white">Host on GitHub Pages in 60 Seconds</h3>
+        </div>
+      </div>
+
+      <p class="text-xs text-zinc-300 leading-relaxed">
+        Because this entire app is now a self-contained single <code class="text-emerald-400 font-bold">index.html</code> file, you don't even need Node.js or a terminal to publish it on GitHub Pages!
+      </p>
+
+      <div class="space-y-3 text-xs">
+        <div class="bg-[#070709] border border-zinc-800 rounded-2xl p-3.5 space-y-1">
+          <p class="font-extrabold text-emerald-400">1. Create a Free GitHub Repository</p>
+          <p class="text-zinc-400">Go to <strong>github.com/new</strong>, name your repository <code class="text-white">dj-hub</code> (Public), and click <strong>Create repository</strong>.</p>
+        </div>
+        <div class="bg-[#070709] border border-zinc-800 rounded-2xl p-3.5 space-y-1">
+          <p class="font-extrabold text-cyan-400">2. Upload This Single File as index.html</p>
+          <p class="text-zinc-400">Click <strong>"uploading an existing file"</strong>, save this code as <code class="text-white">index.html</code>, drag it in, and click <strong>Commit changes</strong>.</p>
+        </div>
+        <div class="bg-[#070709] border border-zinc-800 rounded-2xl p-3.5 space-y-1">
+          <p class="font-extrabold text-purple-400">3. Turn On GitHub Pages</p>
+          <p class="text-zinc-400">Open <strong>Settings → Pages</strong>, set Branch to <code class="text-white">main</code>, and click <strong>Save</strong>. Your permanent URL (<code class="text-emerald-300">https://yourname.github.io/dj-hub</code>) is live forever!</p>
+        </div>
+      </div>
+
+      <button onclick="closeGithubModal()" class="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs">
+        Awesome, Got It!
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       APPLICATION LOGIC (BULLETPROOF VANILLA JS)
+       ========================================== -->
+  <script>
+    // =========================================================================
+    // PASTE YOUR PERMANENT FIREBASE REALTIME DATABASE URL INSIDE THE QUOTES BELOW!
+    // Example: const FIREBASE_DB_URL = "https://dj-dave-hub-default-rtdb.firebaseio.com";
+    // Once pasted here, you NEVER have to enter it in the DJ Booth for future gigs!
+    // =========================================================================
+    const FIREBASE_DB_URL = "https://dj-dave-hub-default-rtdb.firebaseio.com/";
+
+    // 1. State Management (Persisted in localStorage + Cloud Synced via Firebase)
+    const STORAGE_KEY_SETTINGS = 'dj_dave_hub_settings_v3';
+    const STORAGE_KEY_REQUESTS = 'dj_dave_hub_requests_v3';
+    const STORAGE_KEY_PHOTOS   = 'dj_dave_hub_photos_v3';
+    const STORAGE_KEY_UPVOTES  = 'dj_dave_hub_upvotes_v3';
+
+    const defaultSettings = {
+      eventName: "Sarah & James's Wedding",
+      eventSubtitle: "Reception Party & Request Hub",
+      djName: "DJ Dave",
+      cashtag: "$ourmtnlove",
+      tipVibe: "monster", // 'monster' | 'drink' | 'joint'
+      djPin: "1234",
+      familyFriendlyMode: true,
+      quickShareUrl: "",
+      firebaseUrl: FIREBASE_DB_URL
+    };
+
+    const defaultRequests = [
+      {
+        id: 'req-1',
+        title: 'September',
+        artist: 'Earth, Wind & Fire',
+        artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/6b/70/42/6b704258-4c5c-6948-415d-88321b40d394/886443927087.jpg/100x100bb.jpg',
+        guestName: 'Groomsmen Table 4',
+        note: 'Guaranteed to pack the floor for parents & college friends!',
+        upvotes: 8,
+        status: 'pending',
+        vibeTier: 'clean',
+        vibeLabel: '✅ Clean • 98% Wedding Fit',
+        vibeShort: '✅ CLEAN • 98% Fit',
+        genre: 'R&B/Soul',
+        releaseYear: 1978,
+        createdAt: Date.now() - 360000
+      },
+      {
+        id: 'req-2',
+        title: 'I Wanna Dance with Somebody',
+        artist: 'Whitney Houston',
+        artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/82/f3/e9/82f3e9b8-9348-842b-1c82-204c929f0294/078221847728.jpg/100x100bb.jpg',
+        guestName: 'Maid of Honor (Emily)',
+        note: 'Bride’s absolute favorite song!! 💃',
+        upvotes: 6,
+        status: 'pending',
+        vibeTier: 'clean',
+        vibeLabel: '✅ Clean • 98% Wedding Fit',
+        vibeShort: '✅ CLEAN • 98% Fit',
+        genre: 'Pop',
+        releaseYear: 1987,
+        createdAt: Date.now() - 240000
+      },
+      {
+        id: 'req-3',
+        title: 'Yeah! (feat. Lil Jon & Ludacris)',
+        artist: 'Usher',
+        artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/2b/10/9f/2b109f4c-8396-4f59-b1b3-78c8b683b183/828765997423.jpg/100x100bb.jpg',
+        guestName: 'College Crew Table 9',
+        note: 'Late-night throwback!',
+        upvotes: 4,
+        status: 'pending',
+        vibeTier: 'party',
+        vibeLabel: '🎉 Club Vibe • 85% Fit (Check Lyrics)',
+        vibeShort: '🎉 CLUB VIBE • 85% Fit',
+        genre: 'Hip-Hop/R&B',
+        releaseYear: 2004,
+        createdAt: Date.now() - 120000
+      }
+    ];
+
+    function createSampleSvgPhoto(title, subtitle, accentColor) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+        <defs>
+          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0f172a"/>
+            <stop offset="50%" stop-color="#1e1b4b"/>
+            <stop offset="100%" stop-color="#070709"/>
+          </linearGradient>
+        </defs>
+        <rect width="800" height="600" fill="url(#g)"/>
+        <circle cx="400" cy="260" r="170" fill="${accentColor}" opacity="0.16"/>
+        <text x="400" y="265" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-size="36" font-weight="bold">${title}</text>
+        <text x="400" y="320" text-anchor="middle" fill="#a7f3d0" font-family="sans-serif" font-size="22">${subtitle}</text>
+      </svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    }
+
+    const defaultPhotos = [
+      {
+        id: 'photo-1',
+        imageData: createSampleSvgPhoto('🥂 First Toast of the Night!', 'Sarah & James • Reception Memories', '#22c55e'),
+        caption: 'Cheers to Sarah & James! Best wedding ever! 🥂',
+        guestName: 'Uncle Mike & Aunt Linda',
+        status: 'approved',
+        createdAt: Date.now() - 500000
+      },
+      {
+        id: 'photo-2',
+        imageData: createSampleSvgPhoto('💃 Dancefloor Packed!', 'DJ Dave dropping classics all night', '#06b6d4'),
+        caption: 'Table 4 tearing up the dancefloor!',
+        guestName: 'Best Man Chris',
+        status: 'approved',
+        createdAt: Date.now() - 300000
+      }
+    ];
+
+    let state = {
+      appMode: 'guest', // 'guest' | 'dj'
+      djUnlocked: false,
+      guestTab: 'songs', // 'songs' | 'snap' | 'gallery'
+      djTab: 'queue', // 'queue' | 'photos'
+      manualSongMode: false,
+      selectedTrack: null,
+      photoPreviewData: null,
+      monsterAmount: 5,
+      settings: loadFromStorage(STORAGE_KEY_SETTINGS, defaultSettings),
+      requests: loadFromStorage(STORAGE_KEY_REQUESTS, defaultRequests),
+      photos: loadFromStorage(STORAGE_KEY_PHOTOS, defaultPhotos),
+      upvotedIds: loadFromStorage(STORAGE_KEY_UPVOTES, [])
+    };
+
+    // Track seen IDs so DJ Dave's phone chimes & drops a Samsung shade alert
+    // whenever a brand-new song request or photo arrives from a guest's phone
+    const knownRequestIds = new Set((state.requests || []).map(r => r.id));
+    const knownPhotoIds   = new Set((state.photos || []).map(p => p.id));
+
+    function loadFromStorage(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    function saveToStorage(pushCloud = true) {
+      try {
+        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(state.settings));
+        localStorage.setItem(STORAGE_KEY_REQUESTS, JSON.stringify(state.requests));
+        localStorage.setItem(STORAGE_KEY_PHOTOS, JSON.stringify(state.photos));
+        localStorage.setItem(STORAGE_KEY_UPVOTES, JSON.stringify(state.upvotedIds));
+      } catch (e) {
+        // Ignore quota errors
+      }
+      if (pushCloud) {
+        pushStateToFirebase();
+      }
+    }
+
+    // 1B. Silent Background Firebase Realtime Database Sync Engine
+    function getActiveFirebaseUrl() {
+      const raw = (FIREBASE_DB_URL || state.settings.firebaseUrl || '').trim();
+      if (!raw) return '';
+      return raw.replace(/\/+$/, '');
+    }
+
+    function updateCloudBadgeUI(isConnected) {
+      const badge = document.getElementById('cloudSyncBadge');
+      if (!badge) return;
+      if (isConnected) {
+        badge.textContent = '☁️ LIVE SYNC';
+        badge.className = 'px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0';
+      } else {
+        badge.textContent = 'LOCAL';
+        badge.className = 'px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-zinc-800 text-zinc-400 border border-zinc-700 shrink-0';
+      }
+    }
+
+    async function pushStateToFirebase() {
+      const baseUrl = getActiveFirebaseUrl();
+      if (!baseUrl) {
+        updateCloudBadgeUI(false);
+        return;
+      }
+      try {
+        await fetch(`${baseUrl}/dj_dave_hub.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settings: state.settings,
+            requests: state.requests,
+            photos: state.photos,
+            updatedAt: Date.now()
+          })
+        });
+        updateCloudBadgeUI(true);
+      } catch (e) {
+        updateCloudBadgeUI(false);
+      }
+    }
+
+    async function pullStateFromFirebase() {
+      const baseUrl = getActiveFirebaseUrl();
+      if (!baseUrl) {
+        updateCloudBadgeUI(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${baseUrl}/dj_dave_hub.json`);
+        if (!res.ok) return;
+        const cloud = await res.json();
+        updateCloudBadgeUI(true);
+
+        if (!cloud) {
+          await pushStateToFirebase();
+          return;
+        }
+
+        const incomingReqs = Array.isArray(cloud.requests) ? cloud.requests : [];
+        const incomingPhotos = Array.isArray(cloud.photos) ? cloud.photos : [];
+
+        // Detect brand new song requests from guest phones & trigger Samsung Shade Alert
+        incomingReqs.forEach(req => {
+          if (req && req.id && !knownRequestIds.has(req.id)) {
+            knownRequestIds.add(req.id);
+            triggerSamsungShadeAlert(
+              `🎵 New Request: ${req.title}`,
+              `${req.artist} • Requested by ${req.guestName || 'Guest'}${req.note ? ' ("' + req.note + '")' : ''}`,
+              req.vibeShort || req.vibeLabel || '✅ CLEAN',
+              req.vibeTier || 'clean'
+            );
+          }
+        });
+
+        // Detect brand new guest photos & trigger Samsung Shade Alert
+        incomingPhotos.forEach(p => {
+          if (p && p.id && !knownPhotoIds.has(p.id)) {
+            knownPhotoIds.add(p.id);
+            triggerSamsungShadeAlert(
+              '📸 New Wedding Photo Uploaded!',
+              `From ${p.guestName || 'Guest'}: "${p.caption || 'Wedding Snap'}"`,
+              '📸 PHOTO DROP',
+              'clean'
+            );
+          }
+        });
+
+        if (cloud.settings) {
+          const localFb = state.settings.firebaseUrl;
+          state.settings = {
+            ...state.settings,
+            ...cloud.settings,
+            firebaseUrl: FIREBASE_DB_URL || localFb || cloud.settings.firebaseUrl || ''
+          };
+        }
+        state.requests = incomingReqs;
+        state.photos = incomingPhotos;
+        saveToStorage(false);
+        renderAll();
+      } catch (e) {
+        updateCloudBadgeUI(false);
+      }
+    }
+
+    // 2. Web Audio Synth Chime for Samsung Notification Alerts
+    function playNotificationChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(587.33, now); // D5
+        osc1.frequency.setValueAtTime(880, now + 0.11); // A5
+        osc2.frequency.setValueAtTime(293.66, now);
+        osc2.frequency.setValueAtTime(440, now + 0.11);
+
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.42);
+        osc2.stop(now + 0.42);
+      } catch (e) {}
+    }
+
+    // 3. Simulated + Native Samsung Notification Shade Banner
+    let shadeTimer = null;
+    function triggerSamsungShadeAlert(title, body, badgeText, badgeTier) {
+      playNotificationChime();
+      if (navigator.vibrate) navigator.vibrate([160, 70, 160]);
+
+      // Fire native browser notification if permitted
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        try {
+          new Notification(title, { body: `${badgeText ? badgeText + ' • ' : ''}${body}` });
+        } catch (e) {}
+      }
+
+      const banner = document.getElementById('samsungShadeBanner');
+      document.getElementById('shadeTitle').textContent = title;
+      document.getElementById('shadeBody').textContent = body;
+
+      const metricRow = document.getElementById('shadeMetricRow');
+      if (badgeText) {
+        const colorClass = badgeTier === 'explicit'
+          ? 'bg-rose-500/20 text-rose-300 border-rose-500/50'
+          : badgeTier === 'party'
+          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50';
+        metricRow.innerHTML = `<span class="px-2.5 py-0.5 rounded-lg text-[11px] font-black border ${colorClass}">${escapeHtml(badgeText)}</span>`;
+      } else {
+        metricRow.innerHTML = '';
+      }
+
+      banner.classList.remove('hidden');
+      if (shadeTimer) clearTimeout(shadeTimer);
+      shadeTimer = setTimeout(() => {
+        hideSamsungShade();
+      }, 5200);
+    }
+
+    function hideSamsungShade() {
+      document.getElementById('samsungShadeBanner').classList.add('hidden');
+    }
+
+    function testSamsungNotification() {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+      triggerSamsungShadeAlert(
+        "🎵 New Song Request • Sarah & James's Wedding",
+        '"September" by Earth, Wind & Fire — Requested by Table 4',
+        '✅ CLEAN • 98% Wedding Fit',
+        'clean'
+      );
+    }
+
+    // 4. Smart Wedding Appropriateness & Family-Friendly Metric Evaluator
+    function evaluateSongAppropriateness(track) {
+      const explicitRaw = String(track.trackExplicitness || track.collectionExplicitness || 'notExplicit').toLowerCase();
+      const title = String(track.trackName || track.title || '').toLowerCase();
+      const artist = String(track.artistName || track.artist || '').toLowerCase();
+      const genre = track.primaryGenreName || track.genre || 'Pop/Dance';
+      const releaseYear = track.releaseDate ? new Date(track.releaseDate).getFullYear() : (track.releaseYear || '');
+
+      const isExplicit =
+        explicitRaw === 'explicit' ||
+        title.includes('(explicit)') ||
+        title.includes('[explicit]') ||
+        title.includes('uncensored') ||
+        title.includes('dirty');
+
+      const isCleanEdit =
+        explicitRaw === 'cleaned' ||
+        title.includes('(clean)') ||
+        title.includes('radio edit');
+
+      const weddingStaples = [
+        'earth, wind & fire', 'whitney houston', 'abba', 'bruno mars', 'michael jackson',
+        'stevie wonder', 'queen', 'journey', 'shania twain', 'backstreet boys', 'dua lipa',
+        'justin timberlake', 'beyonce', 'beyoncé', 'taylor swift', 'killers', 'temptations'
+      ];
+
+      const clubGenres = ['hip-hop/rap', 'rap', 'trap', 'hard rock', 'electronic', 'dance'];
+      const genreLower = genre.toLowerCase();
+
+      if (isExplicit && !isCleanEdit) {
+        return {
+          tier: 'explicit',
+          score: 35,
+          label: '⚠️ Explicit • Radio Edit Needed',
+          shortBadge: '⚠️ EXPLICIT • Seek Radio Edit',
+          sortWeight: 1,
+          genre,
+          releaseYear
+        };
+      }
+
+      const isStaple = weddingStaples.some(a => artist.includes(a));
+      const isClub = clubGenres.some(g => genreLower.includes(g)) || title.includes('remix') || title.includes('club');
+
+      if (isStaple || (!isClub && !isExplicit)) {
+        return {
+          tier: 'clean',
+          score: isStaple ? 98 : 94,
+          label: '✅ Clean • 98% Wedding Fit',
+          shortBadge: '✅ CLEAN • 98% Fit',
+          sortWeight: 3,
+          genre,
+          releaseYear
+        };
+      }
+
+      return {
+        tier: 'party',
+        score: 85,
+        label: '🎉 Club Vibe • 85% Fit (Check Lyrics)',
+        shortBadge: '🎉 CLUB VIBE • 85% Fit',
+        sortWeight: 2,
+        genre,
+        releaseYear
+      };
+    }
+
+    function getBadgeClasses(tier) {
+      if (tier === 'explicit') return 'bg-rose-500/20 text-rose-300 border-rose-500/50';
+      if (tier === 'party') return 'bg-amber-500/20 text-amber-300 border-amber-500/50';
+      return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50';
+    }
+
+    // 5. Live iTunes Song Search with Debounce + Instant Curated Fallback
+    let searchTimeout = null;
+    let lastSearchResults = [];
+
+    function handleSongSearchInput(query) {
+      const clearBtn = document.getElementById('btnClearSearch');
+      clearBtn.classList.toggle('hidden', !query || query.length === 0);
+
+      // Update external Spotify / YT Music quick links
+      const encoded = encodeURIComponent(query.trim() || 'wedding party hits');
+      document.getElementById('guestSpotifyLink').href = `https://open.spotify.com/search/${encoded}`;
+      document.getElementById('guestYtMusicLink').href = `https://music.youtube.com/search?q=${encoded}`;
+
+      if (!query || query.trim().length < 2) {
+        document.getElementById('searchResultsList').classList.add('hidden');
+        document.getElementById('searchStatusText').classList.add('hidden');
+        return;
+      }
+
+      if (searchTimeout) clearTimeout(searchTimeout);
+      document.getElementById('searchStatusText').classList.remove('hidden');
+
+      searchTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query.trim())}&entity=song&limit=12`);
+          const data = await res.json();
+          let tracks = (data.results || []).map(t => ({
+            trackId: String(t.trackId),
+            trackName: t.trackName,
+            artistName: t.artistName,
+            artworkUrl100: t.artworkUrl100 || '',
+            vibe: evaluateSongAppropriateness(t)
+          }));
+
+          if (state.settings.familyFriendlyMode) {
+            tracks.sort((a, b) => (b.vibe.sortWeight - a.vibe.sortWeight) || (b.vibe.score - a.vibe.score));
+          }
+
+          lastSearchResults = tracks.slice(0, 8);
+          renderSearchResults(lastSearchResults);
+        } catch (err) {
+          // Offline / Sandbox fallback track suggestion
+          const fallbackTrack = {
+            trackId: 'fallback-1',
+            trackName: query.trim(),
+            artistName: 'Wedding Reception Request',
+            artworkUrl100: '',
+            vibe: evaluateSongAppropriateness({ trackName: query.trim(), artistName: '' })
+          };
+          lastSearchResults = [fallbackTrack];
+          renderSearchResults(lastSearchResults);
+        } finally {
+          document.getElementById('searchStatusText').classList.add('hidden');
+        }
+      }, 280);
+    }
+
+    function renderSearchResults(tracks) {
+      const container = document.getElementById('searchResultsList');
+      if (!tracks || tracks.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      let html = '';
+      if (state.settings.familyFriendlyMode) {
+        html += `
+          <div class="px-3.5 py-2 bg-zinc-900/95 flex items-center justify-between text-[11px] text-zinc-400">
+            <span class="font-bold text-emerald-400">🛡️ Family-Friendly Event Filter: Clean tracks sorted first</span>
+            <span>Tap to select</span>
+          </div>
+        `;
+      }
+
+      tracks.forEach((t, idx) => {
+        const badgeCls = getBadgeClasses(t.vibe.tier);
+        const artHtml = t.artworkUrl100
+          ? `<img src="${escapeHtml(t.artworkUrl100)}" class="w-12 h-12 rounded-xl object-cover shrink-0 bg-zinc-800" alt="" />`
+          : `<div class="w-12 h-12 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center shrink-0 text-lg">🎵</div>`;
+
+        html += `
+          <button type="button" onclick="selectSearchResult(${idx})" class="w-full p-3 flex items-center gap-3 hover:bg-zinc-900 transition text-left">
+            ${artHtml}
+            <div class="min-w-0 flex-1 space-y-1">
+              <p class="text-sm font-extrabold text-white truncate">${escapeHtml(t.trackName)}</p>
+              <p class="text-xs text-zinc-400 truncate">${escapeHtml(t.artistName)}${t.vibe.releaseYear ? ' • ' + t.vibe.releaseYear : ''}</p>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border ${badgeCls}">
+                  ${escapeHtml(t.vibe.label)}
+                </span>
+                <span class="text-[10px] text-zinc-500 font-semibold">${escapeHtml(t.vibe.genre)}</span>
+              </div>
+            </div>
+            <span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-extrabold shrink-0">
+              Select
+            </span>
+          </button>
+        `;
+      });
+
+      container.innerHTML = html;
+      container.classList.remove('hidden');
+    }
+
+    function selectSearchResult(idx) {
+      const track = lastSearchResults[idx];
+      if (!track) return;
+      state.selectedTrack = track;
+      document.getElementById('searchResultsList').classList.add('hidden');
+      renderSelectedTrackPill();
+    }
+
+    function renderSelectedTrackPill() {
+      const card = document.getElementById('selectedTrackCard');
+      if (!state.selectedTrack) {
+        card.classList.add('hidden');
+        return;
+      }
+      const t = state.selectedTrack;
+      const badgeCls = getBadgeClasses(t.vibe.tier);
+      const explicitNote = (t.vibe.tier === 'explicit' && state.settings.familyFriendlyMode)
+        ? `<div class="p-2.5 rounded-xl bg-amber-950/60 border border-amber-500/40 text-xs text-amber-200">
+             ⚠️ Heads up: This version is flagged Explicit. ${escapeHtml(state.settings.djName)} may play a Clean Radio Edit for the wedding reception!
+           </div>`
+        : '';
+
+      card.innerHTML = `
+        <div class="flex items-center gap-3">
+          ${t.artworkUrl100 ? `<img src="${escapeHtml(t.artworkUrl100)}" class="w-14 h-14 rounded-xl object-cover shrink-0" />` : `<div class="w-14 h-14 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">🎵</div>`}
+          <div class="min-w-0 flex-1 space-y-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">Selected Song</span>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-black border ${badgeCls}">${escapeHtml(t.vibe.label)}</span>
+            </div>
+            <p class="text-base font-black text-white truncate">${escapeHtml(t.trackName)}</p>
+            <p class="text-xs text-zinc-300 truncate">${escapeHtml(t.artistName)}</p>
+          </div>
+          <button type="button" onclick="clearSelectedTrack()" class="p-2 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white">✕</button>
+        </div>
+        ${explicitNote}
+      `;
+      card.classList.remove('hidden');
+    }
+
+    function clearSelectedTrack() {
+      state.selectedTrack = null;
+      renderSelectedTrackPill();
+    }
+
+    function clearSongSearch() {
+      document.getElementById('songSearchInput').value = '';
+      document.getElementById('btnClearSearch').classList.add('hidden');
+      document.getElementById('searchResultsList').classList.add('hidden');
+      state.selectedTrack = null;
+      renderSelectedTrackPill();
+    }
+
+    function toggleManualSongMode() {
+      state.manualSongMode = !state.manualSongMode;
+      state.selectedTrack = null;
+      renderSelectedTrackPill();
+      document.getElementById('liveSearchContainer').classList.toggle('hidden', state.manualSongMode);
+      document.getElementById('manualSongContainer').classList.toggle('hidden', !state.manualSongMode);
+      document.getElementById('btnToggleManual').textContent = state.manualSongMode
+        ? 'Use Live Song Search'
+        : 'Manual / Remix Entry';
+    }
+
+    // 6. Submit Song Request & Trigger Samsung Shade Alert
+    function submitSongRequest(e) {
+      e.preventDefault();
+      let title = '';
+      let artist = '';
+      let artwork = '';
+      let vibe = null;
+
+      if (state.manualSongMode) {
+        title = document.getElementById('manualTitleInput').value.trim();
+        artist = document.getElementById('manualArtistInput').value.trim();
+        if (!title || !artist) {
+          triggerSamsungShadeAlert('⚠️ Missing Song Info', 'Please enter both the song title and artist name.', '', 'party');
+          return;
+        }
+        vibe = evaluateSongAppropriateness({ trackName: title, artistName: artist, genre: 'Custom/Remix' });
+      } else {
+        if (!state.selectedTrack) {
+          // If guest typed in search box without clicking a dropdown item, use their typed text gracefully
+          const typed = document.getElementById('songSearchInput').value.trim();
+          if (!typed) {
+            triggerSamsungShadeAlert('🎵 Select a Song First', 'Search and tap a song above (or switch to Manual Entry).', '', 'party');
+            return;
+          }
+          title = typed;
+          artist = 'Guest Search Request';
+          vibe = evaluateSongAppropriateness({ trackName: title, artistName: artist });
+        } else {
+          title = state.selectedTrack.trackName;
+          artist = state.selectedTrack.artistName;
+          artwork = state.selectedTrack.artworkUrl100 || '';
+          vibe = state.selectedTrack.vibe;
+        }
+      }
+
+      const guestName = document.getElementById('requesterNameInput').value.trim() || 'Wedding Guest';
+      const note = document.getElementById('requesterNoteInput').value.trim();
+
+      const newReq = {
+        id: 'req-' + Date.now(),
+        title,
+        artist,
+        artwork,
+        guestName,
+        note,
+        upvotes: 1,
+        status: 'pending',
+        vibeTier: vibe.tier,
+        vibeLabel: vibe.label,
+        vibeShort: vibe.shortBadge,
+        genre: vibe.genre || 'Pop',
+        releaseYear: vibe.releaseYear || '',
+        createdAt: Date.now()
+      };
+
+      knownRequestIds.add(newReq.id);
+      state.requests.unshift(newReq);
+      saveToStorage(true);
+      renderAll();
+
+      // Clear form
+      clearSongSearch();
+      document.getElementById('manualTitleInput').value = '';
+      document.getElementById('manualArtistInput').value = '';
+      document.getElementById('requesterNoteInput').value = '';
+
+      // Trigger DJ Notification Banner with Appropriateness Metric
+      triggerSamsungShadeAlert(
+        `🎵 New Request: ${title}`,
+        `${artist} • Requested by ${guestName}${note ? ' ("' + note + '")' : ''}`,
+        vibe.shortBadge,
+        vibe.tier
+      );
+    }
+
+    function upvoteRequest(reqId) {
+      if (state.upvotedIds.includes(reqId)) return;
+      const item = state.requests.find(r => r.id === reqId);
+      if (!item) return;
+      item.upvotes = (item.upvotes || 1) + 1;
+      state.upvotedIds.push(reqId);
+      saveToStorage();
+      renderAll();
+    }
+
+    // 7. Client-Side Canvas Photo Compression & Upload
+    function handlePhotoSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxWidth = 850;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          state.photoPreviewData = canvas.toDataURL('image/jpeg', 0.72);
+
+          document.getElementById('photoPreviewImg').src = state.photoPreviewData;
+          document.getElementById('photoDropZone').classList.add('hidden');
+          document.getElementById('photoUploadForm').classList.remove('hidden');
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearPhotoPreview() {
+      state.photoPreviewData = null;
+      document.getElementById('photoFileInput').value = '';
+      document.getElementById('photoDropZone').classList.remove('hidden');
+      document.getElementById('photoUploadForm').classList.add('hidden');
+    }
+
+    function submitGuestPhoto(e) {
+      e.preventDefault();
+      if (!state.photoPreviewData) return;
+
+      const guestName = document.getElementById('photoGuestNameInput').value.trim() || 'Wedding Guest';
+      const caption = document.getElementById('photoCaptionInput').value.trim() || 'Wedding Reception Snap 📸';
+
+      const newPhoto = {
+        id: 'photo-' + Date.now(),
+        imageData: state.photoPreviewData,
+        caption,
+        guestName,
+        status: 'pending',
+        createdAt: Date.now()
+      };
+
+      knownPhotoIds.add(newPhoto.id);
+      state.photos.unshift(newPhoto);
+      saveToStorage(true);
+      clearPhotoPreview();
+      document.getElementById('photoCaptionInput').value = '';
+      renderAll();
+
+      triggerSamsungShadeAlert(
+        '📸 New Wedding Photo Uploaded!',
+        `From ${guestName}: "${caption}" — Ready for DJ moderation`,
+        '📸 PHOTO DROP',
+        'clean'
+      );
+    }
+
+    // 8. DJ Booth Queue & Photo Moderation Actions
+    function markRequestStatus(reqId, newStatus) {
+      const item = state.requests.find(r => r.id === reqId);
+      if (!item) return;
+      item.status = newStatus;
+      saveToStorage();
+      renderAll();
+    }
+
+    function removeRequest(reqId) {
+      state.requests = state.requests.filter(r => r.id !== reqId);
+      saveToStorage();
+      renderAll();
+    }
+
+    function setPhotoStatus(photoId, status) {
+      const p = state.photos.find(x => x.id === photoId);
+      if (!p) return;
+      p.status = status;
+      saveToStorage();
+      renderAll();
+    }
+
+    function deletePhoto(photoId) {
+      state.photos = state.photos.filter(x => x.id !== photoId);
+      saveToStorage();
+      renderAll();
+    }
+
+    function downloadSinglePhoto(photoId) {
+      const p = state.photos.find(x => x.id === photoId);
+      if (!p) return;
+      const a = document.createElement('a');
+      a.href = p.imageData;
+      a.download = `wedding_photo_${photoId}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function downloadAllApprovedPhotos() {
+      const approved = state.photos.filter(p => p.status === 'approved');
+      if (approved.length === 0) {
+        triggerSamsungShadeAlert('📸 No Approved Photos Yet', 'Approve guest photos first before downloading.', '', 'party');
+        return;
+      }
+      approved.forEach((p, i) => {
+        setTimeout(() => downloadSinglePhoto(p.id), i * 300);
+      });
+      triggerSamsungShadeAlert('📲 Downloading to Samsung Gallery', `Saving ${approved.length} approved wedding photo(s)!`, '✅ SAVED', 'clean');
+    }
+
+    // 9. DJ Booth Live Settings & Family-Friendly Toggle
+    function toggleFamilyFriendlyFilter() {
+      state.settings.familyFriendlyMode = !state.settings.familyFriendlyMode;
+      saveToStorage();
+      renderAll();
+      triggerSamsungShadeAlert(
+        state.settings.familyFriendlyMode ? '🛡️ Family-Friendly Mode Enabled' : '🎉 Standard Club Mode Enabled',
+        state.settings.familyFriendlyMode
+          ? 'Clean wedding tracks now automatically sort to the top of guest searches.'
+          : 'All tracks now sorted by standard catalog order.',
+        state.settings.familyFriendlyMode ? '✅ FAMILY SAFE' : '🎉 CLUB MODE',
+        'clean'
+      );
+    }
+
+    function toggleQuickEditDrawer() {
+      const drawer = document.getElementById('quickEditDrawer');
+      const isHidden = drawer.classList.contains('hidden');
+      if (isHidden) {
+        document.getElementById('editEventName').value = state.settings.eventName;
+        document.getElementById('editEventSubtitle').value = state.settings.eventSubtitle;
+        document.getElementById('editDjName').value = state.settings.djName;
+        document.getElementById('editCashtag').value = state.settings.cashtag;
+        document.getElementById('editQuickShareUrl').value = state.settings.quickShareUrl || '';
+        document.getElementById('editFirebaseUrl').value = FIREBASE_DB_URL || state.settings.firebaseUrl || '';
+        document.getElementById('editDjPin').value = state.settings.djPin || '1234';
+        renderTipVibeButtons();
+        drawer.classList.remove('hidden');
+        document.getElementById('btnQuickEditLabel').textContent = 'Close Editor';
+      } else {
+        drawer.classList.add('hidden');
+        document.getElementById('btnQuickEditLabel').textContent = 'Edit Event / DJ / Tag';
+      }
+    }
+
+    function selectTipVibe(vibe) {
+      state.settings.tipVibe = vibe;
+      saveToStorage(true);
+      renderTipVibeButtons();
+      renderAll();
+    }
+
+    function renderTipVibeButtons() {
+      const current = state.settings.tipVibe || 'monster';
+      const map = {
+        monster: document.getElementById('vibeBtnMonster'),
+        drink: document.getElementById('vibeBtnDrink'),
+        joint: document.getElementById('vibeBtnJoint')
+      };
+      Object.keys(map).forEach(key => {
+        const btn = map[key];
+        if (!btn) return;
+        if (key === current) {
+          btn.className = 'py-2.5 px-3 rounded-xl border text-xs font-black transition bg-emerald-500 text-black border-emerald-400 shadow-lg';
+        } else {
+          btn.className = 'py-2.5 px-3 rounded-xl border text-xs font-extrabold transition bg-[#070709] border-zinc-700 text-zinc-300 hover:text-white';
+        }
+      });
+    }
+
+    function getTipVibeConfig() {
+      const vibe = state.settings.tipVibe || 'monster';
+      if (vibe === 'drink') {
+        return {
+          noun: 'Drink',
+          badge: '🥤',
+          labels: { 3: 'Water', 5: 'Soda', 10: 'Cocktail' }
+        };
+      }
+      if (vibe === 'joint') {
+        return {
+          noun: 'Joint',
+          badge: '🌿',
+          labels: { 3: 'Green', 5: 'Silver', 10: 'Gold' }
+        };
+      }
+      return {
+        noun: 'Monster',
+        badge: 'M⚡',
+        labels: { 3: 'Single', 5: 'Tallboy', 10: '4-Pack' }
+      };
+    }
+
+    function saveLiveSettings(e) {
+      e.preventDefault();
+      state.settings.eventName = document.getElementById('editEventName').value.trim() || "Sarah & James's Wedding";
+      state.settings.eventSubtitle = document.getElementById('editEventSubtitle').value.trim() || "Reception Party & Request Hub";
+      state.settings.djName = document.getElementById('editDjName').value.trim() || "DJ Dave";
+      let tag = document.getElementById('editCashtag').value.trim() || "$ourmtnlove";
+      if (!tag.startsWith('$')) tag = '$' + tag;
+      state.settings.cashtag = tag;
+      state.settings.quickShareUrl = document.getElementById('editQuickShareUrl').value.trim();
+      state.settings.firebaseUrl = document.getElementById('editFirebaseUrl').value.trim();
+      state.settings.djPin = document.getElementById('editDjPin').value.trim() || "1234";
+
+      saveToStorage(true);
+      document.getElementById('quickEditDrawer').classList.add('hidden');
+      document.getElementById('btnQuickEditLabel').textContent = 'Edit Event / DJ / Tag';
+      renderAll();
+
+      triggerSamsungShadeAlert(
+        '✅ Live Booth Settings Updated',
+        `${state.settings.eventName} • ${state.settings.djName} (${state.settings.cashtag})`,
+        '⚡ LIVE SYNC',
+        'clean'
+      );
+    }
+
+    // 10. Mode & Tab Navigation + Modals
+    function switchMode(target) {
+      if (target === 'dj' && !state.djUnlocked) {
+   //   document.getElementById('pinHintText').textContent = state.settings.djPin || '1234';
+        document.getElementById('pinInputBox').value = '';
+        document.getElementById('pinModal').classList.remove('hidden');
+        document.getElementById('pinModal').classList.add('flex');
+        return;
+      }
+      state.appMode = target;
+      renderAll();
+    }
+
+    function verifyPinSubmit(e) {
+      e.preventDefault();
+      const entered = document.getElementById('pinInputBox').value.trim();
+      if (entered === (state.settings.djPin || '1234') || entered === '1234') {
+        quickUnlockDjBooth();
+      } else {
+        triggerSamsungShadeAlert('🔒 Incorrect PIN', `Try PIN ${state.settings.djPin || '1234'} or tap Instant Demo Unlock.`, '', 'explicit');
+      }
+    }
+
+    function closePinModal() {
+      document.getElementById('pinModal').classList.add('hidden');
+      document.getElementById('pinModal').classList.remove('flex');
+    }
+    
+    function quickUnlockDjBooth() {
+      state.djUnlocked = true;
+      state.appMode = 'dj';
+      closePinModal();
+      renderAll();
+    }
+    
+    function switchGuestTab(tab) {
+      state.guestTab = tab;
+      renderAll();
+    }
+
+    function switchDjTab(tab) {
+      state.djTab = tab;
+      renderAll();
+    }
+
+    // Monster Cash App Modal
+    function openMonsterModal() {
+      selectMonsterAmount(state.monsterAmount || 5);
+      document.getElementById('monsterModal').classList.remove('hidden');
+      document.getElementById('monsterModal').classList.add('flex');
+    }
+
+    function closeMonsterModal() {
+      document.getElementById('monsterModal').classList.add('hidden');
+      document.getElementById('monsterModal').classList.remove('flex');
+    }
+
+    function selectMonsterAmount(amt) {
+      state.monsterAmount = amt;
+      [3, 5, 10].forEach(val => {
+        const btn = document.getElementById('amtBtn' + val);
+        if (val === amt) {
+          btn.className = 'py-3 px-2 rounded-2xl border text-center transition bg-[#22c55e]/20 border-[#22c55e] text-white shadow-lg';
+        } else {
+          btn.className = 'py-3 px-2 rounded-2xl border text-center transition bg-[#070709] border-zinc-800 text-zinc-400 hover:text-white';
+        }
+      });
+      const cleanTag = (state.settings.cashtag || '$ourmtnlove').replace(/^\$/, '');
+      const url = `https://cash.app/$${cleanTag}/${amt}`;
+      document.getElementById('cashAppLaunchLink').href = url;
+      document.getElementById('cashAppBtnText').textContent = `Open Cash App ($${amt} to $${cleanTag}) ↗`;
+    }
+
+    // Fullscreen QR Modal
+    function getAppShareUrl() {
+      const href = window.location.href.split('?')[0];
+      return href.startsWith('http') ? href : 'https://yourname.github.io/dj-hub';
+    }
+
+    function openFullscreenQr(type) {
+      const modal = document.getElementById('qrFullscreenModal');
+      const baseUrl = getAppShareUrl();
+
+      if (type === 'couple') {
+        const targetUrl = state.settings.quickShareUrl || baseUrl;
+        document.getElementById('qrModalBadge').textContent = 'For the Newlyweds 💍';
+        document.getElementById('qrModalTitle').textContent = `${state.settings.eventName} • Photo Album`;
+        document.getElementById('qrModalSubtitle').textContent = state.settings.quickShareUrl
+          ? 'Scan to open DJ Dave’s Samsung Quick Share high-res photo folder!'
+          : 'Scan to browse & save all approved photos from tonight’s reception!';
+        document.getElementById('qrModalImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(targetUrl)}`;
+        document.getElementById('qrModalUrlText').textContent = targetUrl;
+      } else {
+        document.getElementById('qrModalBadge').textContent = 'Guest Access Pass 🎧';
+        document.getElementById('qrModalTitle').textContent = state.settings.eventName;
+        document.getElementById('qrModalSubtitle').textContent = 'Scan with your phone camera to request songs, upvote the queue & share wedding photos!';
+        document.getElementById('qrModalImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(baseUrl)}`;
+        document.getElementById('qrModalUrlText').textContent = baseUrl;
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeFullscreenQr() {
+      document.getElementById('qrFullscreenModal').classList.add('hidden');
+      document.getElementById('qrFullscreenModal').classList.remove('flex');
+    }
+
+    // Reset Gig Modal
+    function openResetGigModal() {
+      document.getElementById('resetGigModal').classList.remove('hidden');
+      document.getElementById('resetGigModal').classList.add('flex');
+    }
+
+    function closeResetGigModal() {
+      document.getElementById('resetGigModal').classList.add('hidden');
+      document.getElementById('resetGigModal').classList.remove('flex');
+    }
+
+    function confirmResetGig() {
+      state.requests = [];
+      state.photos = [];
+      state.upvotedIds = [];
+      saveToStorage();
+      closeResetGigModal();
+      renderAll();
+      triggerSamsungShadeAlert('✨ Queue Cleared for Next Gig!', 'Your static QR code is now fresh and ready for the next reception.', '✅ READY', 'clean');
+    }
+
+    // GitHub Pages Guide Modal
+    function openGithubModal() {
+      document.getElementById('githubModal').classList.remove('hidden');
+      document.getElementById('githubModal').classList.add('flex');
+    }
+
+    function closeGithubModal() {
+      document.getElementById('githubModal').classList.add('hidden');
+      document.getElementById('githubModal').classList.remove('flex');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // 11. Master Render Function
+    function renderAll() {
+      const s = state.settings;
+
+      // Top Navbar & Hero Text
+      document.getElementById('navEventName').textContent = s.eventName;
+      document.getElementById('navEventSubtitle').textContent = s.eventSubtitle;
+      document.getElementById('heroEventName').textContent = s.eventName;
+      document.getElementById('heroEventSubtitle').textContent = s.eventSubtitle;
+      document.getElementById('heroDjStatus').textContent = `${s.djName} Live • Request Line Open`;
+      document.getElementById('heroFamilyBadge').classList.toggle('hidden', !s.familyFriendlyMode);
+
+      // DJ Top Tile
+      document.getElementById('djTopEventTitle').textContent = s.eventName;
+      document.getElementById('djTopEventSubtitle').textContent = `${s.eventSubtitle} • Static QR never needs re-printing!`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=6&data=${encodeURIComponent(getAppShareUrl())}`;
+      const qrImg = document.getElementById('djHeroQrImg');
+      if (qrImg.dataset.lastSrc !== qrUrl) {
+        qrImg.src = qrUrl;
+        qrImg.dataset.lastSrc = qrUrl;
+      }
+
+      // Family-friendly filter button in DJ Booth
+      const famBtn = document.getElementById('btnFamilyFilter');
+      const famCheck = document.getElementById('familyCheckIcon');
+      if (s.familyFriendlyMode) {
+        famBtn.className = 'px-3.5 py-2.5 rounded-2xl border text-xs font-extrabold flex items-center gap-2 transition bg-emerald-950/70 border-emerald-500/60 text-emerald-300';
+        famCheck.textContent = '✓';
+        famCheck.className = 'w-4 h-4 rounded bg-emerald-400 text-black flex items-center justify-center text-[11px] font-black';
+      } else {
+        famBtn.className = 'px-3.5 py-2.5 rounded-2xl border text-xs font-extrabold flex items-center gap-2 transition bg-zinc-900 border-zinc-700 text-zinc-400';
+        famCheck.textContent = '';
+        famCheck.className = 'w-4 h-4 rounded border border-zinc-600 flex items-center justify-center text-[11px]';
+      }
+
+      // Sticky Footer & Monster Modal Branding
+      const vibeCfg = getTipVibeConfig();
+      document.getElementById('footerDjName').textContent = s.djName;
+      document.getElementById('footerDjNameSub').textContent = s.djName;
+      document.getElementById('footerVibeNoun').textContent = vibeCfg.noun;
+      document.getElementById('footerVibeBadge').textContent = vibeCfg.badge;
+      document.getElementById('footerCashtag').textContent = s.cashtag;
+      document.getElementById('footerTipBtnLabel').textContent = `Tip ${s.djName}`;
+      document.getElementById('modalDjNameBadge').textContent = s.djName;
+      document.getElementById('modalDjNameTitle').textContent = s.djName;
+      document.getElementById('modalVibeNoun').textContent = vibeCfg.noun;
+      document.getElementById('modalDjNameBody').textContent = s.djName;
+      document.getElementById('modalCashtagDisplay').textContent = s.cashtag;
+      document.getElementById('tierLabel3').textContent = vibeCfg.labels[3];
+      document.getElementById('tierLabel5').textContent = vibeCfg.labels[5];
+      document.getElementById('tierLabel10').textContent = vibeCfg.labels[10];
+      selectMonsterAmount(state.monsterAmount || 5);
+      renderTipVibeButtons();
+
+      // Mode Switcher Buttons
+      const guestView = document.getElementById('guestView');
+      const djView = document.getElementById('djView');
+      const btnGuest = document.getElementById('btnModeGuest');
+      const btnDj = document.getElementById('btnModeDj');
+      document.getElementById('djLockIcon').textContent = state.djUnlocked ? '🔓' : '🔒';
+
+      if (state.appMode === 'guest') {
+        guestView.classList.remove('hidden');
+        djView.classList.add('hidden');
+        btnGuest.className = 'px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 bg-emerald-500 text-black shadow-md';
+        btnDj.className = 'px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 text-zinc-400 hover:text-white relative';
+      } else {
+        guestView.classList.add('hidden');
+        djView.classList.remove('hidden');
+        btnGuest.className = 'px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 text-zinc-400 hover:text-white';
+        btnDj.className = 'px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 bg-emerald-500 text-black shadow-md relative';
+      }
+
+      // Counts
+      const pendingReqs = state.requests.filter(r => r.status !== 'played').length;
+      const pendingPhotos = state.photos.filter(p => p.status === 'pending').length;
+      const approvedPhotos = state.photos.filter(p => p.status === 'approved');
+      const totalBadge = pendingReqs + pendingPhotos;
+      const badgeEl = document.getElementById('djBadgeCount');
+      badgeEl.textContent = totalBadge;
+      badgeEl.classList.toggle('hidden', totalBadge === 0);
+
+      document.getElementById('guestGalleryTabLabel').textContent = `Gallery (${approvedPhotos.length})`;
+      document.getElementById('djQueueTabCount').textContent = `Song Queue (${state.requests.length})`;
+      document.getElementById('djPhotosTabCount').textContent = `Photo Moderation (${state.photos.length})`;
+
+      // Guest Tabs Active State
+      const gTabs = ['songs', 'snap', 'gallery'];
+      gTabs.forEach(t => {
+        const btn = document.getElementById('guestTab' + t.charAt(0).toUpperCase() + t.slice(1));
+        const pane = document.getElementById('guest' + t.charAt(0).toUpperCase() + t.slice(1) + 'Pane');
+        if (state.guestTab === t) {
+          btn.className = 'py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all bg-emerald-500 text-black shadow-lg';
+          pane.classList.remove('hidden');
+        } else {
+          btn.className = 'py-2.5 px-2 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-1.5 transition-all text-zinc-400 hover:text-white';
+          pane.classList.add('hidden');
+        }
+      });
+
+      // Render Guest Request Queue (Sorted by Upvotes)
+      const sortedQueue = [...state.requests].sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
+      const guestQueueEl = document.getElementById('guestQueueList');
+      if (sortedQueue.length === 0) {
+        guestQueueEl.innerHTML = `<div class="bg-[#121217] border border-zinc-800 rounded-3xl p-8 text-center text-zinc-400 text-sm">No songs in the queue yet — be the first to request a track!</div>`;
+      } else {
+        guestQueueEl.innerHTML = sortedQueue.map(item => {
+          const hasUpvoted = state.upvotedIds.includes(item.id);
+          const badgeCls = getBadgeClasses(item.vibeTier);
+          const art = item.artwork
+            ? `<img src="${escapeHtml(item.artwork)}" class="w-14 h-14 rounded-xl object-cover shrink-0 bg-zinc-800" alt="" />`
+            : `<div class="w-14 h-14 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center shrink-0 text-xl">🎵</div>`;
+
+          return `
+            <div class="bg-[#121217] border ${item.status === 'played' ? 'border-zinc-800/50 opacity-60' : 'border-zinc-800'} rounded-2xl p-3.5 flex items-center gap-3.5">
+              ${art}
+              <div class="min-w-0 flex-1 space-y-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p class="text-sm font-extrabold text-white truncate">${escapeHtml(item.title)}</p>
+                  ${item.status === 'played' ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-zinc-400">Played</span>` : ''}
+                </div>
+                <p class="text-xs text-zinc-400 truncate">${escapeHtml(item.artist)}</p>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-black border ${badgeCls}">${escapeHtml(item.vibeShort || item.vibeLabel)}</span>
+                  <span class="text-[11px] text-emerald-300/90 truncate">by ${escapeHtml(item.guestName)}${item.note ? ' — "' + escapeHtml(item.note) + '"' : ''}</span>
+                </div>
+              </div>
+              ${item.status !== 'played' ? `
+                <button onclick="upvoteRequest('${item.id}')" ${hasUpvoted ? 'disabled' : ''} class="px-3.5 py-2.5 rounded-2xl border text-xs font-black flex flex-col items-center justify-center shrink-0 transition ${hasUpvoted ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'bg-[#070709] hover:bg-zinc-900 border-zinc-700 text-white'}">
+                  <span>🔥</span>
+                  <span>${item.upvotes || 1}</span>
+                </button>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render Guest Approved Gallery
+      const quickShareBanner = document.getElementById('guestQuickShareBanner');
+      if (s.quickShareUrl) {
+        quickShareBanner.classList.remove('hidden');
+        document.getElementById('guestQuickShareBtn').href = s.quickShareUrl;
+      } else {
+        quickShareBanner.classList.add('hidden');
+      }
+
+      const galleryGrid = document.getElementById('guestGalleryGrid');
+      if (approvedPhotos.length === 0) {
+        galleryGrid.innerHTML = `<div class="col-span-full bg-[#121217] border border-zinc-800 rounded-3xl p-10 text-center text-zinc-400 text-sm">No approved photos yet — head to Snap & Share to take the first photo!</div>`;
+      } else {
+        galleryGrid.innerHTML = approvedPhotos.map(p => `
+          <div class="bg-[#121217] border border-zinc-800 rounded-3xl overflow-hidden shadow-lg">
+            <div class="aspect-[4/3] bg-black overflow-hidden">
+              <img src="${p.imageData}" alt="" class="w-full h-full object-cover" />
+            </div>
+            <div class="p-3.5 flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-white truncate">"${escapeHtml(p.caption)}"</p>
+                <p class="text-[11px] text-zinc-400">📸 by ${escapeHtml(p.guestName)}</p>
+              </div>
+              <button onclick="downloadSinglePhoto('${p.id}')" class="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-zinc-200 shrink-0">
+                ⬇️ Save
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Render DJ Booth Sub-Tabs
+      const djQueueBtn = document.getElementById('djTabQueueBtn');
+      const djPhotosBtn = document.getElementById('djTabPhotosBtn');
+      const djQueuePane = document.getElementById('djQueuePane');
+      const djPhotosPane = document.getElementById('djPhotosPane');
+
+      if (state.djTab === 'queue') {
+        djQueueBtn.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition bg-emerald-500 text-black shadow-lg';
+        djPhotosBtn.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition text-zinc-400 hover:text-white';
+        djQueuePane.classList.remove('hidden');
+        djPhotosPane.classList.add('hidden');
+      } else {
+        djPhotosBtn.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition bg-emerald-500 text-black shadow-lg';
+        djQueueBtn.className = 'py-2.5 px-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition text-zinc-400 hover:text-white';
+        djPhotosPane.classList.remove('hidden');
+        djQueuePane.classList.add('hidden');
+      }
+
+      // Render DJ Queue Cards with Appropriateness Metric & Check Lyrics Link
+      const djQueueList = document.getElementById('djQueueList');
+      if (sortedQueue.length === 0) {
+        djQueueList.innerHTML = `<div class="bg-[#121217] border border-zinc-800 rounded-3xl p-8 text-center text-zinc-400 text-sm">Queue is empty. Guests can scan the Guest Access Pass above to add tracks!</div>`;
+      } else {
+        djQueueList.innerHTML = sortedQueue.map(req => {
+          const badgeCls = getBadgeClasses(req.vibeTier);
+          const spotifyUrl = `https://open.spotify.com/search/${encodeURIComponent(req.title + ' ' + req.artist)}`;
+          const lyricsUrl = `https://www.google.com/search?q=${encodeURIComponent(req.title + ' ' + req.artist + ' lyrics parent advisory')}`;
+
+          return `
+            <div class="bg-[#121217] border ${req.status === 'played' ? 'border-zinc-800 opacity-50' : req.vibeTier === 'explicit' ? 'border-rose-500/50' : 'border-zinc-800'} rounded-3xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-start gap-3.5 min-w-0">
+                ${req.artwork ? `<img src="${escapeHtml(req.artwork)}" class="w-16 h-16 rounded-2xl object-cover shrink-0 bg-zinc-900" />` : `<div class="w-16 h-16 rounded-2xl bg-zinc-900 flex items-center justify-center text-2xl shrink-0">🎵</div>`}
+                <div class="min-w-0 flex-1 space-y-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-black">🔥 ${req.upvotes || 1}</span>
+                    <h3 class="text-base font-black text-white truncate">${escapeHtml(req.title)}</h3>
+                    <span class="px-2.5 py-0.5 rounded-lg text-xs font-black border ${badgeCls}">${escapeHtml(req.vibeLabel)}</span>
+                  </div>
+                  <p class="text-sm text-zinc-300 font-semibold">
+                    ${escapeHtml(req.artist)} ${req.releaseYear ? '• ' + req.releaseYear : ''} (${escapeHtml(req.genre || 'Pop')})
+                  </p>
+                  <p class="text-xs text-emerald-300">
+                    Requested by: <strong>${escapeHtml(req.guestName)}</strong>${req.note ? ' — "' + escapeHtml(req.note) + '"' : ''}
+                  </p>
+                  <div class="flex items-center gap-2 pt-1 flex-wrap">
+                    <a href="${spotifyUrl}" target="_blank" rel="noreferrer" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-[#1DB954]/20 text-[#1ed760] border border-[#1DB954]/30 hover:bg-[#1DB954]/30">
+                      Open in Spotify ↗
+                    </a>
+                    <a href="${lyricsUrl}" target="_blank" rel="noreferrer" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700">
+                      🔍 Check Lyrics / Advisory ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-800">
+                ${req.status !== 'played' ? `
+                  <button onclick="markRequestStatus('${req.id}', 'played')" class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black">
+                    ✓ Mark Played
+                  </button>
+                ` : `
+                  <button onclick="markRequestStatus('${req.id}', 'pending')" class="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold">
+                    Undo Played
+                  </button>
+                `}
+                <button onclick="removeRequest('${req.id}')" class="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-600 text-rose-300 hover:text-white text-xs font-bold">
+                  ✕ Remove
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Render DJ Photo Moderation Grid
+      const djPhotosGrid = document.getElementById('djPhotosGrid');
+      if (state.photos.length === 0) {
+        djPhotosGrid.innerHTML = `<div class="col-span-full bg-[#121217] border border-zinc-800 rounded-3xl p-8 text-center text-zinc-400 text-sm">No guest photos uploaded yet.</div>`;
+      } else {
+        djPhotosGrid.innerHTML = state.photos.map(p => `
+          <div class="bg-[#121217] border ${p.status === 'pending' ? 'border-amber-500/60' : 'border-emerald-500/40'} rounded-3xl overflow-hidden flex flex-col justify-between">
+            <div>
+              <div class="relative aspect-[4/3] bg-black">
+                <img src="${p.imageData}" alt="" class="w-full h-full object-cover" />
+                <span class="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${p.status === 'pending' ? 'bg-amber-400 text-black' : 'bg-emerald-400 text-black'}">
+                  ${p.status === 'pending' ? 'Pending Review' : 'Approved in Gallery'}
+                </span>
+              </div>
+              <div class="p-4">
+                <p class="text-sm font-bold text-white">"${escapeHtml(p.caption)}"</p>
+                <p class="text-xs text-zinc-400 mt-0.5">Uploaded by: <strong class="text-zinc-200">${escapeHtml(p.guestName)}</strong></p>
+              </div>
+            </div>
+            <div class="p-3 bg-[#070709] border-t border-zinc-800 flex items-center gap-2">
+              ${p.status !== 'approved' ? `
+                <button onclick="setPhotoStatus('${p.id}', 'approved')" class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-black">
+                  ✓ Approve Photo
+                </button>
+              ` : `
+                <button onclick="setPhotoStatus('${p.id}', 'pending')" class="flex-1 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold">
+                  Hide from Gallery
+                </button>
+              `}
+              <button onclick="downloadSinglePhoto('${p.id}')" class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold" title="Save to Phone">
+                ⬇️
+              </button>
+              <button onclick="deletePhoto('${p.id}')" class="px-3 py-2 rounded-xl bg-rose-950/70 hover:bg-rose-600 text-rose-300 hover:text-white text-xs font-bold" title="Delete">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderAll();
+      pullStateFromFirebase();
+      setInterval(pullStateFromFirebase, 3500);
+    });
+  </script>
+</body>
+</html>
